@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.local
+.npm-cache/
+.superpowers/
+.edge-profile/
+dev-server*.log
+landing-screenshot.png
+*.tsbuildinfo
