@@ -16,7 +16,9 @@ jobs:
           RECORD_CONTENT: fancy-wave-hair-salon.pages.dev
         run: |
           node <<'NODE'
-          const token = process.env.CLOUDFLARE_API_TOKEN;
+          const token = (process.env.CLOUDFLARE_API_TOKEN || "")
+            .replace(/^\uFEFF/, "")
+            .trim();
           const zoneId = process.env.CLOUDFLARE_ZONE_ID;
           const recordName = process.env.RECORD_NAME;
           const recordContent = process.env.RECORD_CONTENT;
