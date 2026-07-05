@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LanguageProvider } from "../lib/i18n";
+import { cancelManagedBooking } from "../lib/data";
 import { ManageBookingPage } from "./ManageBookingPage";
 import type { ManageableBooking } from "../lib/types";
 
@@ -73,6 +74,7 @@ describe("ManageBookingPage", () => {
     window.localStorage.setItem("fancy-wave-language", "en");
     window.sessionStorage.clear();
     confettiMock.mockClear();
+    vi.mocked(cancelManagedBooking).mockClear();
   });
 
   it("shows confetti after a freshly completed booking", async () => {
@@ -130,5 +132,21 @@ describe("ManageBookingPage", () => {
     expect(ics).toContain("DTSTART:20260707T140000Z");
     expect(ics).toContain("DTEND:20260707T144500Z");
     expect(ics).toContain("Booking reference: FW-123456");
+  });
+
+  it("asks for confirmation before cancelling a managed booking", async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValueOnce(false);
+    renderConfirmedBooking({ token: "cancel-token" });
+
+    const cancelButton = await screen.findByRole("button", {
+      name: "Cancel appointment"
+    });
+    await user.click(cancelButton);
+
+    expect(confirmSpy).toHaveBeenCalledWith("Cancel this appointment? This cannot be undone.");
+    expect(cancelManagedBooking).not.toHaveBeenCalled();
+
+    confirmSpy.mockRestore();
   });
 });
