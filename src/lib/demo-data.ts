@@ -9,6 +9,7 @@ import type {
   StylistHour
 } from "./types";
 import { zonedDateAndTimeToUtc } from "./booking";
+import { salonHeroImage } from "./assets";
 import { salonName } from "./salon";
 
 export const demoSettings: SalonSettings = {
@@ -211,7 +212,7 @@ export const demoGalleryPhotos: GalleryPhoto[] = [
   {
     id: "gallery-demo-1",
     storagePath: "demo/salon-floor.jpg",
-    imageUrl: "/assets/salon-hero.png",
+    imageUrl: salonHeroImage,
     altText: "Fancy Wave salon styling floor",
     altTextEn: "Fancy Wave salon styling floor",
     altTextZh: "\u6c99\u9f99\u9020\u578b\u533a",
@@ -224,7 +225,7 @@ export const demoGalleryPhotos: GalleryPhoto[] = [
   {
     id: "gallery-demo-2",
     storagePath: "demo/color-station.jpg",
-    imageUrl: "/assets/salon-hero.png",
+    imageUrl: salonHeroImage,
     altText: "Hair color and blowout station",
     altTextEn: "Hair color and blowout station",
     altTextZh: "\u67d3\u53d1\u548c\u5439\u98ce\u5de5\u4f4d",
@@ -237,7 +238,7 @@ export const demoGalleryPhotos: GalleryPhoto[] = [
   {
     id: "gallery-demo-3",
     storagePath: "demo/guest-chair.jpg",
-    imageUrl: "/assets/salon-hero.png",
+    imageUrl: salonHeroImage,
     altText: "Guest chair inside Fancy Wave Beauty Salon",
     altTextEn: "Guest chair inside Fancy Wave Beauty Salon",
     altTextZh: "\u6c99\u9f99\u5ba2\u4eba\u5ea7\u6905",
