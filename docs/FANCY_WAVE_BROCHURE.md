@@ -140,3 +140,78 @@ The gallery manager controls the photos shown on the homepage, including image o
 This site gives Fancy Wave a professional online presence and reduces the manual scheduling work that normally happens by phone or text. Customers can book when the shop is busy or closed, and staff get a single place to manage appointments, services, hours, stylists, and gallery content.
 
 The result is simple: fewer missed booking opportunities, cleaner daily operations, and a website that feels like the salon is already ready for customers before they walk through the door.
+
+## Mobile-Friendly Preview
+
+The same customer and staff workflows adapt to a phone-sized layout with touch-friendly controls, stacked forms, horizontal admin navigation, and sticky booking actions.
+
+<table>
+  <thead>
+    <tr>
+      <th>Capability</th>
+      <th>Mobile view</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Storefront landing page</td>
+      <td><img src="./brochure-screenshots-mobile/01-landing-page.png" width="180" alt="Mobile landing page"></td>
+    </tr>
+    <tr>
+      <td>Pick a service</td>
+      <td><img src="./brochure-screenshots-mobile/02-booking-service-selection.png" width="180" alt="Mobile booking service selection"></td>
+    </tr>
+    <tr>
+      <td>Choose a stylist</td>
+      <td><img src="./brochure-screenshots-mobile/03-booking-stylist-selection.png" width="180" alt="Mobile booking stylist selection"></td>
+    </tr>
+    <tr>
+      <td>Select a time</td>
+      <td><img src="./brochure-screenshots-mobile/04-booking-time-picker.png" width="180" alt="Mobile booking time picker"></td>
+    </tr>
+    <tr>
+      <td>Enter customer details</td>
+      <td><img src="./brochure-screenshots-mobile/05-booking-customer-details.png" width="180" alt="Mobile booking customer details"></td>
+    </tr>
+    <tr>
+      <td>Confirmation and self-service</td>
+      <td><img src="./brochure-screenshots-mobile/06-booking-confirmation-manage.png" width="180" alt="Mobile booking confirmation and management"></td>
+    </tr>
+    <tr>
+      <td>Staff sign in</td>
+      <td><img src="./brochure-screenshots-mobile/07-admin-login.png" width="180" alt="Mobile admin login"></td>
+    </tr>
+    <tr>
+      <td>Appointment dashboard</td>
+      <td><img src="./brochure-screenshots-mobile/08-admin-appointments.png" width="180" alt="Mobile admin appointments"></td>
+    </tr>
+    <tr>
+      <td>Appointment detail</td>
+      <td><img src="./brochure-screenshots-mobile/09-admin-appointment-detail.png" width="180" alt="Mobile appointment detail"></td>
+    </tr>
+    <tr>
+      <td>Add appointment</td>
+      <td><img src="./brochure-screenshots-mobile/10-admin-add-appointment.png" width="180" alt="Mobile add appointment"></td>
+    </tr>
+    <tr>
+      <td>Calendar with appointments</td>
+      <td><img src="./brochure-screenshots-mobile/11-admin-calendar.png" width="180" alt="Mobile admin calendar with appointments"></td>
+    </tr>
+    <tr>
+      <td>Service management</td>
+      <td><img src="./brochure-screenshots-mobile/12-admin-services.png" width="180" alt="Mobile service management"></td>
+    </tr>
+    <tr>
+      <td>Stylist management</td>
+      <td><img src="./brochure-screenshots-mobile/13-admin-stylists.png" width="180" alt="Mobile stylist management"></td>
+    </tr>
+    <tr>
+      <td>Business hours</td>
+      <td><img src="./brochure-screenshots-mobile/14-admin-hours.png" width="180" alt="Mobile business hours"></td>
+    </tr>
+    <tr>
+      <td>Gallery management</td>
+      <td><img src="./brochure-screenshots-mobile/15-admin-gallery.png" width="180" alt="Mobile gallery management"></td>
+    </tr>
+  </tbody>
+</table>
