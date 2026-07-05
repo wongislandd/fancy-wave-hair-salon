@@ -8,6 +8,7 @@
     "dev:staging": "vite --mode staging",
     "build": "tsc -b && vite build",
     "build:staging": "tsc -b && vite build --mode staging",
+    "build:staging:github-pages": "tsc -b && vite build --mode staging --base /fancy-wave-hair-salon/",
     "build:prod": "tsc -b && vite build --mode production",
     "preview": "vite preview",
     "test": "vitest --environment node --globals",

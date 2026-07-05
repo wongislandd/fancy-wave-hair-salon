@@ -47,6 +47,7 @@ npm test -- --run
 npm run lint
 npm run build
 npm run build:staging
+npm run build:staging:github-pages
 npm run build:prod
 npm audit --omit=dev
 ```
@@ -266,6 +267,8 @@ Main handoff risks:
 
 ## Cloudflare Pages
 
+Cloudflare Pages remains the production deployment target. The existing `.github/workflows/cloudflare-pages.yml` workflow builds from `main` with production Supabase repository secrets and deploys to the Cloudflare Pages project.
+
 Build command:
 
 ```bash
@@ -288,6 +291,31 @@ VITE_SUPABASE_PUBLISHABLE_KEY
 ```
 
 Because this is a single-page app, configure fallback routing to serve `index.html` for nested paths like `/book` and `/manage-booking/:token`.
+
+## GitHub Pages Staging
+
+GitHub Pages is the hosted staging deployment target for this repo:
+
+```text
+https://wongislandd.github.io/fancy-wave-hair-salon/
+```
+
+The staging workflow is `.github/workflows/github-pages-staging.yml`. It builds with:
+
+```bash
+npm run build:staging:github-pages
+```
+
+That script uses Vite staging mode and the `/fancy-wave-hair-salon/` base path required for a repository GitHub Pages site. The workflow also copies `dist/index.html` to `dist/404.html` so nested SPA routes can reload on GitHub Pages.
+
+Required GitHub repository secrets for staging:
+
+```text
+STAGING_VITE_SUPABASE_URL
+STAGING_VITE_SUPABASE_PUBLISHABLE_KEY
+```
+
+These should point to the staging Supabase project only. Production Cloudflare secrets should continue pointing to production.
 
 ## Recommended Next Work
 

@@ -16,6 +16,7 @@ import {
   getServiceCalendarBlockMinutes
 } from "./booking";
 import { sendBookingEmailBestEffort } from "./email-api";
+import { salonHeroImage } from "./assets";
 import {
   demoAppointments,
   demoBusinessHourExceptions,
@@ -212,7 +213,7 @@ export async function uploadGalleryPhoto(
   if (!supabase) {
     const imageUrl = typeof URL !== "undefined" && "createObjectURL" in URL
       ? URL.createObjectURL(file)
-      : "/assets/salon-hero.png";
+      : salonHeroImage;
 
     return saveGalleryPhoto({
       ...values,
@@ -261,7 +262,7 @@ export async function saveGalleryPhoto(
     const photo: GalleryPhoto = {
       id: crypto.randomUUID(),
       storagePath: values.storagePath ?? `demo/gallery-${crypto.randomUUID()}.jpg`,
-      imageUrl: values.imageUrl ?? "/assets/salon-hero.png",
+      imageUrl: values.imageUrl ?? salonHeroImage,
       altText: altTextEn,
       altTextEn,
       altTextZh,
@@ -1591,7 +1592,7 @@ async function nextSupabaseGalleryDisplayOrder(): Promise<number> {
 }
 
 function publicGalleryPhotoUrl(storagePath: string): string {
-  if (!supabase) return "/assets/salon-hero.png";
+  if (!supabase) return salonHeroImage;
 
   return supabase.storage.from(galleryBucketName).getPublicUrl(storagePath).data.publicUrl;
 }

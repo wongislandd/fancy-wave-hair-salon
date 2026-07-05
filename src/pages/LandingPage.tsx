@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { GalleryCarousel } from "../components/GalleryCarousel";
 import { listPublicGalleryPhotos, listPublicServices } from "../lib/data";
 import { formatPriceRange } from "../lib/booking";
+import { salonHeroImage } from "../lib/assets";
 import { useLanguage } from "../lib/use-language";
 import { getLocalizedGalleryPhotoText, getLocalizedServiceText, localeForLanguage } from "../lib/localization";
 import { googleMapsDirectionsUrl, googleMapsEmbedUrl, salonAddress, salonName } from "../lib/salon";
@@ -59,7 +60,7 @@ export function LandingPage() {
           </div>
           <div className="relative min-h-[360px] overflow-hidden rounded-[2rem]">
             <img
-              src="/assets/salon-hero.png"
+              src={salonHeroImage}
               alt="Clean modern hair salon interior"
               className="h-full w-full object-cover"
             />
