@@ -42,6 +42,7 @@ Staff admin access requires Supabase Auth. Create a real Supabase Auth user and 
 ## Scripts
 
 ```bash
+npm run dev:staging
 npm test -- --run
 npm run lint
 npm run build
