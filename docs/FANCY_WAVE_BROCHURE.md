@@ -4,7 +4,7 @@ Fancy Wave now has a polished customer website and a practical staff workspace i
 
 This brochure walks through the experience a customer and salon team would use every day.
 
-Screenshots were captured from the staging website at https://wongislandd.github.io/fancy-wave-hair-salon using staging data.
+Screenshots reflect the staging website at https://wongislandd.github.io/fancy-wave-hair-salon with staging and sample booking data.
 
 ## The Storefront Customers See
 
