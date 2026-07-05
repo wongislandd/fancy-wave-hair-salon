@@ -8,6 +8,8 @@ import { useLanguage } from "../lib/use-language";
 import { getLocalizedGalleryPhotoText, getLocalizedServiceText, localeForLanguage } from "../lib/localization";
 import { googleMapsDirectionsUrl, googleMapsEmbedUrl, salonAddress, salonName } from "../lib/salon";
 
+const landingServiceLimit = 4;
+
 export function LandingPage() {
   const { language, t } = useLanguage();
   const locale = localeForLanguage(language);
@@ -27,6 +29,7 @@ export function LandingPage() {
       })),
     [galleryPhotos, language]
   );
+  const featuredServices = services.slice(0, landingServiceLimit);
   const hoursLines = t("landing.hoursCopy").split(" / ");
 
   return (
@@ -74,7 +77,7 @@ export function LandingPage() {
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {services.map((service) => {
+          {featuredServices.map((service) => {
             const serviceText = getLocalizedServiceText(service, language);
 
             return (
@@ -97,8 +100,8 @@ export function LandingPage() {
             <p className="text-sm font-semibold uppercase tracking-wide text-wave-deep">{t("landing.locationEyebrow")}</p>
             <h2 className="mt-2 text-3xl font-black sm:text-4xl">{t("landing.locationTitle")}</h2>
 
-            <div className="mt-6 grid gap-3">
-              <div className="rounded-2xl border border-wave-deep/10 bg-white p-4">
+            <div className="mt-6 divide-y divide-wave-deep/10 rounded-[1.375rem] border border-wave-deep/10 bg-white">
+              <div className="p-4">
                 <p className="flex items-start gap-3 font-semibold">
                   <MapPin className="mt-0.5 shrink-0 text-wave-deep" size={20} />
                   <span>
@@ -107,7 +110,7 @@ export function LandingPage() {
                   </span>
                 </p>
               </div>
-              <div className="rounded-2xl border border-wave-deep/10 bg-white p-4">
+              <div className="p-4">
                 <p className="flex items-start gap-3 font-semibold">
                   <Clock3 className="mt-0.5 shrink-0 text-wave-deep" size={20} />
                   <span>

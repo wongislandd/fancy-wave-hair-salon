@@ -10,7 +10,11 @@ import {
   getBookingByToken,
   rescheduleBookingByToken
 } from "./booking-api";
-import { dateKeyInTimeZone, deriveAvailableSlots } from "./booking";
+import {
+  dateKeyInTimeZone,
+  deriveAvailableSlots,
+  getServiceCalendarBlockMinutes
+} from "./booking";
 import { sendBookingEmailBestEffort } from "./email-api";
 import {
   demoAppointments,
@@ -491,7 +495,7 @@ export async function bookAppointment(
     const id = crypto.randomUUID();
     const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
     const endsAt = new Date(
-      new Date(startsAt).getTime() + service.durationMinutes * 60_000
+      new Date(startsAt).getTime() + getServiceCalendarBlockMinutes(service) * 60_000
     ).toISOString();
 
     demoAppointments.push({
@@ -563,7 +567,7 @@ export async function bookStaffAppointment(
     const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
     const bookingReference = `FW-${id.slice(0, 6).toUpperCase()}`;
     const endsAt = new Date(
-      new Date(request.startsAt).getTime() + service.durationMinutes * 60_000
+      new Date(request.startsAt).getTime() + getServiceCalendarBlockMinutes(service) * 60_000
     ).toISOString();
     const now = new Date().toISOString();
 
@@ -651,6 +655,7 @@ export async function saveService(
     descriptionEn: string;
     descriptionZh: string;
     durationMinutes: number;
+    calendarBlockMinutes?: number;
     priceDollars: number;
     priceMaxDollars: number | null;
     priceIsStartingAt: boolean;
@@ -662,6 +667,7 @@ export async function saveService(
   const chineseName = values.nameZh.trim() || values.nameEn.trim();
   const englishDescription = values.descriptionEn.trim() || values.descriptionZh.trim();
   const chineseDescription = values.descriptionZh.trim() || values.descriptionEn.trim();
+  const calendarBlockMinutes = values.calendarBlockMinutes ?? values.durationMinutes;
   const priceCents = dollarsToCents(values.priceDollars);
   const priceMaxCents = values.priceIsStartingAt
     ? null
@@ -674,6 +680,7 @@ export async function saveService(
     description_en: englishDescription,
     description_zh: chineseDescription,
     duration_minutes: values.durationMinutes,
+    calendar_block_minutes: calendarBlockMinutes,
     price_cents: priceCents,
     price_max_cents: priceMaxCents,
     price_is_starting_at: values.priceIsStartingAt,
@@ -691,6 +698,7 @@ export async function saveService(
       service.name = englishName;
       service.description = englishDescription;
       service.durationMinutes = values.durationMinutes;
+      service.calendarBlockMinutes = calendarBlockMinutes;
       service.priceCents = priceCents;
       service.priceMaxCents = priceMaxCents;
       service.priceIsStartingAt = values.priceIsStartingAt;
@@ -705,6 +713,7 @@ export async function saveService(
         name: englishName,
         description: englishDescription,
         durationMinutes: values.durationMinutes,
+        calendarBlockMinutes,
         priceCents,
         priceMaxCents,
         priceIsStartingAt: values.priceIsStartingAt,
@@ -1079,7 +1088,7 @@ export async function rescheduleAppointmentAsStaff(
     appointment.startsAt = newStartsAt;
     appointment.endsAt = new Date(
       new Date(newStartsAt).getTime() +
-        appointment.serviceDurationMinutesSnapshot * 60_000
+        getAppointmentCalendarBlockMinutes(appointment) * 60_000
     ).toISOString();
     appointment.updatedAt = new Date().toISOString();
     return;
@@ -1119,7 +1128,7 @@ export async function rescheduleManagedBooking(
     appointment.startsAt = newStartsAt;
     appointment.endsAt = new Date(
       new Date(newStartsAt).getTime() +
-        appointment.serviceDurationMinutesSnapshot * 60_000
+        getAppointmentCalendarBlockMinutes(appointment) * 60_000
     ).toISOString();
     appointment.updatedAt = new Date().toISOString();
     return;
@@ -1200,6 +1209,7 @@ function mapService(row: Record<string, unknown>): Service {
     name: nameEn || nameZh,
     description: descriptionEn || descriptionZh,
     durationMinutes: Number(row.duration_minutes),
+    calendarBlockMinutes: Number(row.calendar_block_minutes ?? row.duration_minutes),
     priceCents: Number(row.price_cents),
     priceMaxCents: row.price_max_cents === null || row.price_max_cents === undefined
       ? null
@@ -1486,12 +1496,21 @@ function serviceFromAppointment(appointment: Appointment): Service {
     name: appointment.serviceNameSnapshot,
     description: "",
     durationMinutes: appointment.serviceDurationMinutesSnapshot,
+    calendarBlockMinutes: getAppointmentCalendarBlockMinutes(appointment),
     priceCents: appointment.servicePriceCentsSnapshot,
     priceMaxCents: appointment.servicePriceMaxCentsSnapshot ?? null,
     priceIsStartingAt: Boolean(appointment.servicePriceIsStartingAtSnapshot),
     isActive: true,
     displayOrder: 0
   };
+}
+
+function getAppointmentCalendarBlockMinutes(appointment: Appointment): number {
+  const blockMinutes = Math.round(
+    (new Date(appointment.endsAt).getTime() - new Date(appointment.startsAt).getTime()) / 60_000
+  );
+
+  return blockMinutes > 0 ? blockMinutes : appointment.serviceDurationMinutesSnapshot;
 }
 
 function canCustomerManageOnline(appointment: Appointment, now: Date): boolean {

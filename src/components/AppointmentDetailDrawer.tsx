@@ -196,7 +196,7 @@ export function AppointmentDetailDrawer({
           </section>
 
           {appointment.status === "confirmed" && (
-            <section className="mt-6 overflow-hidden rounded-2xl border border-wave-deep/10 bg-wave-cream/55">
+            <section className="mt-6 border-y border-wave-deep/10 py-2">
               <button
                 type="button"
                 aria-controls={movePanelId}
@@ -240,7 +240,7 @@ export function AppointmentDetailDrawer({
                       </button>
                     ))}
                   </div>
-                  <div className="mt-3 rounded-2xl border border-wave-deep/10 bg-white p-3">
+                  <div className="ui-subtle-note mt-3">
                     {moveSlotsQuery.isFetching && (
                       <p className="text-sm text-wave-ink/65">{t("drawer.loadingTimes")}</p>
                     )}
@@ -289,14 +289,14 @@ export function AppointmentDetailDrawer({
               <StickyNote size={16} />
               {t("drawer.notes")}
             </h3>
-            <div className="mt-3 rounded-2xl bg-wave-mint/70 p-4 text-sm text-wave-ink/75">
+            <div className="ui-subtle-note mt-3 text-sm">
               <p className="font-semibold text-wave-ink">{t("drawer.customerNote")}</p>
               <p className="mt-1">{appointment.notes || t("drawer.noCustomerNote")}</p>
             </div>
             <label className="mt-4 block">
               <span className="mb-2 block text-sm font-semibold">{t("drawer.staffNotes")}</span>
               <textarea
-                className="focus-ring min-h-28 w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
+                className="ui-field min-h-28"
                 aria-label={t("drawer.staffNotes")}
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
@@ -316,9 +316,9 @@ export function AppointmentDetailDrawer({
 
           <section className="mt-6">
             <h3 className="text-sm font-bold uppercase tracking-wide text-wave-deep">{t("drawer.previous")}</h3>
-            <div className="mt-3 space-y-3">
+            <div className="ui-divided-list mt-3">
               {history.map((item) => (
-                <article key={item.id} className="rounded-2xl border border-wave-deep/10 p-4">
+                <article key={item.id} className="ui-divided-row">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-bold">{getAppointmentServiceName(item, language)}</p>
@@ -336,7 +336,7 @@ export function AppointmentDetailDrawer({
                 </article>
               ))}
               {history.length === 0 && (
-                <p className="rounded-2xl bg-wave-mint/70 p-4 text-sm text-wave-ink/70">
+                <p className="ui-subtle-note">
                   {t("drawer.noPrevious")}
                 </p>
               )}
@@ -364,7 +364,7 @@ export function AppointmentDetailDrawer({
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-wave-deep/10 px-3 py-3">
+    <div className="border-b border-wave-deep/10 py-3 last:border-b-0">
       <dt className="font-semibold">{label}</dt>
       <dd className="mt-1 text-wave-ink/70">{value}</dd>
     </div>
@@ -381,12 +381,21 @@ function serviceFromAppointment(appointment: Appointment): Service {
     descriptionEn: "",
     descriptionZh: "",
     durationMinutes: appointment.serviceDurationMinutesSnapshot,
+    calendarBlockMinutes: getAppointmentCalendarBlockMinutes(appointment),
     priceCents: appointment.servicePriceCentsSnapshot,
     priceMaxCents: appointment.servicePriceMaxCentsSnapshot ?? null,
     priceIsStartingAt: Boolean(appointment.servicePriceIsStartingAtSnapshot),
     isActive: true,
     displayOrder: 0
   };
+}
+
+function getAppointmentCalendarBlockMinutes(appointment: Appointment): number {
+  const blockMinutes = Math.round(
+    (new Date(appointment.endsAt).getTime() - new Date(appointment.startsAt).getTime()) / 60_000
+  );
+
+  return blockMinutes > 0 ? blockMinutes : appointment.serviceDurationMinutesSnapshot;
 }
 
 function stylistFromAppointment(appointment: Appointment): Stylist {

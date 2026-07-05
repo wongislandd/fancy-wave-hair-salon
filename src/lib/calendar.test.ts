@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildAppointmentCalendarLinks,
   buildCalendarDayLayouts,
+  buildCalendarDraftSelection,
+  calendarPointerYToMinutes,
   getCalendarViewDays,
   moveCalendarAnchor
 } from "./calendar";
@@ -79,6 +82,115 @@ describe("calendar helpers", () => {
 
     expect(layouts).toHaveLength(1);
     expect(layouts[0].topPercent).toBe(25);
+  });
+
+  it("converts calendar pointer positions into visible-day minutes", () => {
+    expect(calendarPointerYToMinutes(60, 120, 8, 20)).toBe(510);
+    expect(calendarPointerYToMinutes(-24, 120, 8, 20)).toBe(480);
+    expect(calendarPointerYToMinutes(2000, 120, 8, 20)).toBe(1200);
+  });
+
+  it("builds snapped drag selections with minimum duration and calendar bounds", () => {
+    const day = new Date("2026-07-06T12:00:00.000Z");
+
+    expect(
+      buildCalendarDraftSelection({
+        day,
+        startPointerY: 145,
+        currentPointerY: 228,
+        hourHeightPx: 120,
+        startHour: 8,
+        endHour: 20,
+        timeZone: "America/New_York"
+      })
+    ).toMatchObject({
+      date: "2026-07-06",
+      startsAt: "2026-07-06T13:00:00.000Z",
+      endsAt: "2026-07-06T14:00:00.000Z",
+      durationMinutes: 60,
+      startMinutes: 540,
+      endMinutes: 600
+    });
+
+    expect(
+      buildCalendarDraftSelection({
+        day,
+        startPointerY: 120,
+        currentPointerY: 126,
+        hourHeightPx: 120,
+        startHour: 8,
+        endHour: 20,
+        timeZone: "America/New_York"
+      })
+    ).toMatchObject({
+      startsAt: "2026-07-06T13:00:00.000Z",
+      endsAt: "2026-07-06T13:30:00.000Z",
+      durationMinutes: 30
+    });
+
+    expect(
+      buildCalendarDraftSelection({
+        day,
+        startPointerY: 2000,
+        currentPointerY: 2200,
+        hourHeightPx: 120,
+        startHour: 8,
+        endHour: 20,
+        timeZone: "America/New_York"
+      })
+    ).toMatchObject({
+      startsAt: "2026-07-06T23:30:00.000Z",
+      endsAt: "2026-07-07T00:00:00.000Z",
+      durationMinutes: 30,
+      startMinutes: 1170,
+      endMinutes: 1200
+    });
+  });
+
+  it("builds Google and iCal links from the current appointment details", () => {
+    const links = buildAppointmentCalendarLinks({
+      bookingReference: "FW-8661A33A",
+      serviceName: "Gloss Treatment",
+      stylistName: "Mara Lee",
+      startsAt: "2026-07-06T14:00:00.000Z",
+      endsAt: "2026-07-06T14:45:00.000Z",
+      manageUrl: "https://example.com/manage-booking/manage-token",
+      generatedAt: new Date("2026-07-05T16:00:00.000Z")
+    });
+    const googleUrl = new URL(links.googleUrl);
+    const ics = decodeURIComponent(
+      links.icsDataUri.replace("data:text/calendar;charset=utf-8,", "")
+    );
+
+    expect(googleUrl.origin).toBe("https://calendar.google.com");
+    expect(googleUrl.searchParams.get("action")).toBe("TEMPLATE");
+    expect(googleUrl.searchParams.get("text")).toBe(
+      "Gloss Treatment at Fancy Wave Beauty Salon"
+    );
+    expect(googleUrl.searchParams.get("dates")).toBe(
+      "20260706T140000Z/20260706T144500Z"
+    );
+    expect(googleUrl.searchParams.get("ctz")).toBe("America/New_York");
+    expect(googleUrl.searchParams.get("location")).toContain(
+      "135-45 Roosevelt Ave"
+    );
+    expect(googleUrl.searchParams.get("details")).toContain("Mara Lee");
+    expect(googleUrl.searchParams.get("details")).toContain("FW-8661A33A");
+    expect(links.fileName).toBe("fancy-wave-fw-8661a33a.ics");
+    expect(ics).toContain("BEGIN:VCALENDAR\r\nVERSION:2.0");
+    expect(ics).toContain("UID:fw-8661a33a@fancy-wave-beauty-salon");
+    expect(ics).toContain("DTSTAMP:20260705T160000Z");
+    expect(ics).toContain("DTSTART:20260706T140000Z");
+    expect(ics).toContain("DTEND:20260706T144500Z");
+    expect(ics).toContain(
+      "SUMMARY:Gloss Treatment at Fancy Wave Beauty Salon"
+    );
+    expect(ics).toContain(
+      "LOCATION:Fancy Wave Beauty Salon\\, 135-45 Roosevelt Ave\\, Flushing\\, NY 11354"
+    );
+    expect(ics).toContain(
+      "DESCRIPTION:Stylist: Mara Lee\\nBooking reference: FW-8661A33A\\nManage booking: https://example.com/manage-booking/manage-token"
+    );
   });
 });
 

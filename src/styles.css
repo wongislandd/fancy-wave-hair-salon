@@ -66,8 +66,16 @@ select {
   background-color: #f3f4f6;
 }
 
+.admin-theme .bg-wave-deep\/20 {
+  background-color: #e5e7eb;
+}
+
 .admin-theme .bg-wave-ink\/35 {
   background-color: rgb(17 24 39 / 0.35);
+}
+
+.admin-theme .peer:checked ~ .peer-checked\:bg-wave-deep {
+  background-color: #111827;
 }
 
 .admin-theme .text-wave-ink,
@@ -118,8 +126,70 @@ select {
   border-color: #d1d5db;
 }
 
+.admin-theme .divide-wave-deep\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgb(17 24 39 / 0.12);
+}
+
 .admin-theme .ring-wave-deep\/20 {
   --tw-ring-color: rgb(17 24 39 / 0.2);
+}
+
+.admin-theme .peer:focus-visible ~ .peer-focus-visible\:ring-wave-deep {
+  --tw-ring-color: #111827;
+}
+
+@layer components {
+  .ui-surface {
+    @apply rounded-[1.375rem] border border-wave-deep/10 bg-white p-5 sm:p-6;
+  }
+
+  .ui-surface-compact {
+    @apply rounded-[1.375rem] border border-wave-deep/10 bg-white p-4 sm:p-5;
+  }
+
+  .ui-section-divider {
+    @apply border-t border-wave-deep/10 pt-5;
+  }
+
+  .ui-divided-list {
+    @apply divide-y divide-wave-deep/10;
+  }
+
+  .ui-divided-row {
+    @apply py-4;
+  }
+
+  .ui-subtle-note {
+    @apply rounded-2xl bg-wave-mint/55 p-4 text-sm text-wave-ink/70;
+  }
+
+  .ui-field {
+    @apply focus-ring w-full rounded-2xl border border-wave-deep/15 bg-white px-3 py-3;
+  }
+
+  .ui-affixed-field {
+    @apply flex overflow-hidden rounded-2xl border border-wave-deep/15 bg-white;
+  }
+
+  .ui-affixed-input {
+    @apply focus-ring min-w-0 flex-1 bg-white px-3 py-3;
+  }
+
+  .ui-affix {
+    @apply flex items-center bg-wave-mint/60 px-3 text-sm font-semibold text-wave-deep;
+  }
+
+  .ui-status-dot {
+    @apply h-2 w-2 rounded-full;
+  }
+
+  .ui-segmented {
+    @apply inline-flex rounded-full bg-wave-mint/70 p-1 text-sm font-semibold;
+  }
+
+  .ui-switch {
+    @apply relative h-6 w-11 shrink-0 rounded-full bg-wave-deep/20 transition after:absolute after:left-1 after:top-1 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition peer-checked:bg-wave-deep peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-wave-deep peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-white;
+  }
 }
 
 .gallery-scroller {

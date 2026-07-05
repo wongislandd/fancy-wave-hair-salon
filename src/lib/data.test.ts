@@ -629,6 +629,30 @@ describe("demo data access", () => {
     });
   });
 
+  it("stores the exposed service duration while blocking only the calendar duration", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-04T12:00:00.000Z"));
+    demoServices[0].durationMinutes = 240;
+    demoServices[0].calendarBlockMinutes = 60;
+
+    const confirmation = await bookStaffAppointment({
+      serviceId: demoServices[0].id,
+      stylistId: demoStylists[0].id,
+      startsAt: "2026-07-06T15:00:00.000Z",
+      customerName: "Jo Carter",
+      customerEmail: "",
+      customerPhone: ""
+    });
+
+    const appointment = demoAppointments.find((item) => item.id === confirmation.appointmentId);
+
+    expect(appointment).toMatchObject({
+      serviceDurationMinutesSnapshot: 240,
+      startsAt: "2026-07-06T15:00:00.000Z",
+      endsAt: "2026-07-06T16:00:00.000Z"
+    });
+  });
+
   it("rejects staff-created demo appointments that overlap the selected stylist", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-04T12:00:00.000Z"));

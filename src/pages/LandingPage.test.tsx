@@ -47,6 +47,32 @@ const services: Service[] = [
     priceIsStartingAt: true,
     displayOrder: 3,
     isActive: true
+  },
+  {
+    id: "service-4",
+    name: "Blowout Styling",
+    nameEn: "Blowout Styling",
+    nameZh: "Blowout Styling",
+    description: "Smooth styling for everyday polish.",
+    descriptionEn: "Smooth styling for everyday polish.",
+    descriptionZh: "Smooth styling for everyday polish.",
+    durationMinutes: 45,
+    priceCents: 5500,
+    displayOrder: 4,
+    isActive: true
+  },
+  {
+    id: "service-5",
+    name: "Full Color",
+    nameEn: "Full Color",
+    nameZh: "Full Color",
+    description: "All-over color consultation, application, and finish.",
+    descriptionEn: "All-over color consultation, application, and finish.",
+    descriptionZh: "All-over color consultation, application, and finish.",
+    durationMinutes: 120,
+    priceCents: 16500,
+    displayOrder: 5,
+    isActive: true
   }
 ];
 
@@ -102,6 +128,8 @@ describe("LandingPage", () => {
     expect(screen.getByText("$65")).toBeTruthy();
     expect(screen.getByText("$28-$60")).toBeTruthy();
     expect(screen.getByText("$28+")).toBeTruthy();
+    expect(screen.getByText("Blowout Styling")).toBeTruthy();
+    expect(screen.queryByText("Full Color")).toBeNull();
     expect(await screen.findByRole("heading", { name: "Gallery" })).toBeTruthy();
     expect(screen.getByAltText("Salon color chair")).toBeTruthy();
     expect(screen.queryByText("Fresh color and clean shine")).toBeNull();

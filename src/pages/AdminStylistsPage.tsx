@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, Plus, Save, Scissors, Trash2, UserRound, UsersRound } from "lucide-react";
+import { Plus, Save, Scissors, Trash2, UserRound, UsersRound } from "lucide-react";
 import { AdminShell } from "../components/AdminShell";
 import { stylistFormSchema, type StylistFormValues } from "../lib/admin";
 import { formatPriceRange } from "../lib/booking";
@@ -178,7 +178,7 @@ export function AdminStylistsPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
-        <section className="rounded-3xl border border-wave-deep/10 bg-white p-5">
+        <section className="ui-surface-compact">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-xl font-black">{t("admin.stylists.listTitle")}</h2>
@@ -186,7 +186,7 @@ export function AdminStylistsPage() {
             </div>
             <button
               type="button"
-              className="focus-ring rounded-full bg-wave-mint p-2 text-wave-deep"
+              className="focus-ring inline-flex items-center gap-2 rounded-full bg-wave-deep px-4 py-2 text-sm font-semibold text-white"
               onClick={() => {
                 setSelectedId("");
                 setForm(blankStylistForm);
@@ -194,12 +194,13 @@ export function AdminStylistsPage() {
               }}
               aria-label={t("admin.stylists.newStylist")}
             >
-              <Plus size={18} />
+              <Plus size={17} />
+              <span>{t("admin.stylists.newStylist")}</span>
             </button>
           </div>
 
-          <div className="mt-5 space-y-2">
-            {stylistsQuery.isLoading && <p>{t("admin.stylists.loading")}</p>}
+          <div className="mt-4 overflow-hidden rounded-2xl border border-wave-deep/10">
+            {stylistsQuery.isLoading && <p className="p-4">{t("admin.stylists.loading")}</p>}
             {stylists.map((stylist) => {
               const stylistText = getLocalizedStylistText(stylist, language);
               const specialties = stylistText.specialties.join(", ");
@@ -212,10 +213,10 @@ export function AdminStylistsPage() {
                     setSelectedId(stylist.id);
                     setFormError("");
                   }}
-                  className={`focus-ring block w-full rounded-2xl border p-4 text-left transition ${
+                  className={`focus-ring block w-full border-t border-wave-deep/10 px-4 py-4 text-left transition first:border-t-0 ${
                     selectedId === stylist.id
-                      ? "border-wave-deep bg-wave-mint"
-                      : "border-wave-deep/10 hover:border-wave-deep/35"
+                      ? "bg-wave-mint/60"
+                      : "bg-white hover:bg-wave-mint/35"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -226,13 +227,13 @@ export function AdminStylistsPage() {
                         {specialties ? ` / ${specialties}` : ""}
                       </p>
                     </div>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        stylist.isActive
-                          ? "bg-wave-mint text-wave-deep"
-                          : "bg-wave-mint text-wave-ink/65"
-                      }`}
-                    >
+                    <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-wave-ink/65">
+                      <span
+                        className={`ui-status-dot ${
+                          stylist.isActive ? "bg-emerald-500" : "bg-wave-ink/35"
+                        }`}
+                        aria-hidden="true"
+                      />
                       {stylist.isActive ? t("common.active") : t("common.hidden")}
                     </span>
                   </div>
@@ -242,11 +243,8 @@ export function AdminStylistsPage() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-wave-deep/10 bg-white p-5 sm:p-6">
-          <div className="flex items-start gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-wave-mint text-wave-deep">
-              <UserRound size={21} />
-            </span>
+        <section className="ui-surface">
+          <div className="border-b border-wave-deep/10 pb-5">
             <div>
               <h2 className="text-xl font-black">
                 {selectedStylist ? t("admin.stylists.edit") : t("admin.stylists.new")}
@@ -259,22 +257,22 @@ export function AdminStylistsPage() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4">
+          <div className="mt-6 grid gap-6">
             <Field label={t("admin.stylists.name")}>
               <input
-                className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
+                className="ui-field"
                 value={form.name}
                 onChange={(event) => setForm({ ...form, name: event.target.value })}
                 placeholder="Nina Park"
               />
             </Field>
-            <div className="grid gap-4 lg:grid-cols-2">
-              <section className="rounded-2xl border border-wave-deep/10 p-4">
-                <h3 className="font-black">{t("admin.stylists.english")}</h3>
+            <div className="ui-section-divider grid gap-6 lg:grid-cols-2 lg:divide-x lg:divide-wave-deep/10">
+              <section>
+                <h3 className="text-sm font-black text-wave-ink/65">{t("admin.stylists.english")}</h3>
                 <div className="mt-4 grid gap-4">
                   <Field label={t("admin.stylists.bioEn")}>
                     <textarea
-                      className="focus-ring min-h-28 w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
+                      className="ui-field min-h-28"
                       value={form.bioEn}
                       onChange={(event) => setForm({ ...form, bioEn: event.target.value })}
                       placeholder="Precision cuts, soft layers, and lived-in styling."
@@ -282,7 +280,7 @@ export function AdminStylistsPage() {
                   </Field>
                   <Field label={t("admin.stylists.specialtiesEn")}>
                     <input
-                      className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
+                      className="ui-field"
                       value={form.specialtiesEn}
                       onChange={(event) => setForm({ ...form, specialtiesEn: event.target.value })}
                       placeholder="Cuts, Layers, Blowouts"
@@ -291,12 +289,12 @@ export function AdminStylistsPage() {
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-wave-deep/10 p-4">
-                <h3 className="font-black">{t("admin.stylists.chinese")}</h3>
+              <section className="lg:pl-6">
+                <h3 className="text-sm font-black text-wave-ink/65">{t("admin.stylists.chinese")}</h3>
                 <div className="mt-4 grid gap-4">
                   <Field label={t("admin.stylists.bioZh")}>
                     <textarea
-                      className="focus-ring min-h-28 w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
+                      className="ui-field min-h-28"
                       value={form.bioZh}
                       onChange={(event) => setForm({ ...form, bioZh: event.target.value })}
                       placeholder={"\u7cbe\u51c6\u526a\u53d1\u3001\u67d4\u548c\u5c42\u6b21\u548c\u81ea\u7136\u9020\u578b"}
@@ -304,7 +302,7 @@ export function AdminStylistsPage() {
                   </Field>
                   <Field label={t("admin.stylists.specialtiesZh")}>
                     <input
-                      className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
+                      className="ui-field"
                       value={form.specialtiesZh}
                       onChange={(event) => setForm({ ...form, specialtiesZh: event.target.value })}
                       placeholder={"\u526a\u53d1, \u5c42\u6b21, \u5439\u98ce\u9020\u578b"}
@@ -314,12 +312,12 @@ export function AdminStylistsPage() {
               </section>
             </div>
 
-            <div>
+            <div className="ui-section-divider">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-sm font-semibold">{t("admin.stylists.servicesOffered")}</span>
                 <span className="text-sm text-wave-ink/55">{t("admin.stylists.selected", { count: form.serviceIds.length })}</span>
               </div>
-              <div className="grid gap-2 md:grid-cols-2">
+              <div className="overflow-hidden rounded-2xl border border-wave-deep/10">
                 {servicesQuery.isLoading && <p>{t("admin.services.loading")}</p>}
                 {services.map((service) => {
                   const serviceText = getLocalizedServiceText(service, language);
@@ -327,10 +325,10 @@ export function AdminStylistsPage() {
                   return (
                     <label
                       key={service.id}
-                      className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition ${
+                      className={`flex cursor-pointer items-start gap-3 border-t border-wave-deep/10 px-3 py-3 transition first:border-t-0 ${
                         form.serviceIds.includes(service.id)
-                          ? "border-wave-deep bg-wave-mint"
-                          : "border-wave-deep/10 hover:border-wave-deep/35"
+                          ? "bg-wave-mint/60"
+                          : "hover:bg-wave-mint/35"
                       }`}
                     >
                       <input
@@ -351,7 +349,7 @@ export function AdminStylistsPage() {
               </div>
             </div>
 
-            <label className="flex items-center justify-between gap-4 rounded-2xl border border-wave-deep/10 px-4 py-3">
+            <label className="ui-section-divider flex cursor-pointer items-center justify-between gap-4">
               <span>
                 <span className="block font-semibold">{t("admin.stylists.activePublicly")}</span>
                 <span className="text-sm text-wave-ink/60">{t("admin.stylists.visibleBooking")}</span>
@@ -360,8 +358,9 @@ export function AdminStylistsPage() {
                 type="checkbox"
                 checked={form.isActive}
                 onChange={(event) => setForm({ ...form, isActive: event.target.checked })}
-                className="h-5 w-5"
+                className="peer sr-only"
               />
+              <span className="ui-switch" />
             </label>
           </div>
 
@@ -402,7 +401,7 @@ export function AdminStylistsPage() {
         </section>
       </div>
 
-      <section className="mt-6 rounded-3xl border border-wave-deep/10 bg-white p-5 sm:p-6">
+      <section className="ui-surface mt-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-xl font-black">{t("admin.stylists.hoursTitle")}</h2>
@@ -412,25 +411,22 @@ export function AdminStylistsPage() {
                 : t("admin.stylists.hoursEmpty")}
             </p>
           </div>
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-wave-mint text-wave-deep">
-            <Clock size={19} />
-          </span>
         </div>
 
         {!selectedId && (
-          <p className="mt-5 rounded-2xl bg-wave-mint/60 p-4 text-sm text-wave-ink/70">
+          <p className="ui-subtle-note mt-5">
             {t("admin.stylists.chooseFirst")}
           </p>
         )}
 
         {selectedId && (
-          <div className="mt-5 grid gap-3">
+          <div className="ui-divided-list mt-5">
             {hoursQuery.isLoading && <p>{t("admin.stylists.loadingHours")}</p>}
             {(hoursQuery.data ?? []).map((hour) => (
               <article
                 key={hour.dayOfWeek}
-                className={`grid gap-3 rounded-2xl border p-4 lg:grid-cols-[150px_210px_minmax(0,1fr)_150px] lg:items-start ${
-                  hour.isClosed ? "border-wave-deep/10 bg-wave-mint/55" : "border-wave-deep/15 bg-white"
+                className={`ui-divided-row grid gap-3 lg:grid-cols-[150px_210px_minmax(0,1fr)_150px] lg:items-start ${
+                  hour.isClosed ? "opacity-70" : ""
                 }`}
               >
                 <div className="lg:pt-7">
@@ -440,7 +436,7 @@ export function AdminStylistsPage() {
                   </p>
                 </div>
 
-                <label className="flex min-h-[52px] items-center justify-between gap-3 rounded-2xl border border-wave-deep/10 px-4 py-3 font-semibold lg:mt-7">
+                <label className="flex min-h-[52px] items-center justify-between gap-3 rounded-2xl bg-wave-mint/45 px-4 py-3 font-semibold lg:mt-7">
                   <span className="whitespace-nowrap">{t("admin.stylists.useSalonHours")}</span>
                   <input
                     type="checkbox"
@@ -453,7 +449,7 @@ export function AdminStylistsPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label={t("common.open")}>
                     <input
-                      className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3 disabled:bg-wave-mint/70 disabled:text-wave-ink/45"
+                      className="ui-field disabled:bg-wave-mint/70 disabled:text-wave-ink/45"
                       type="time"
                       value={hour.opensAt}
                       disabled={hour.usesSalonHours || hour.isClosed}
@@ -462,7 +458,7 @@ export function AdminStylistsPage() {
                   </Field>
                   <Field label={t("common.close")}>
                     <input
-                      className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3 disabled:bg-wave-mint/70 disabled:text-wave-ink/45"
+                      className="ui-field disabled:bg-wave-mint/70 disabled:text-wave-ink/45"
                       type="time"
                       value={hour.closesAt}
                       disabled={hour.usesSalonHours || hour.isClosed}
@@ -472,7 +468,7 @@ export function AdminStylistsPage() {
                 </div>
 
                 <label
-                  className={`flex min-h-[52px] items-center justify-between gap-3 rounded-2xl border border-wave-deep/10 px-4 py-3 font-semibold lg:mt-7 ${
+                  className={`flex min-h-[52px] items-center justify-between gap-3 rounded-2xl bg-wave-mint/45 px-4 py-3 font-semibold lg:mt-7 ${
                     hour.usesSalonHours ? "opacity-55" : ""
                   }`}
                 >
@@ -496,12 +492,12 @@ export function AdminStylistsPage() {
 
 function Metric({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-wave-deep/10 bg-white px-5 py-4 shadow-sm">
+    <div className="ui-surface-compact flex items-center justify-between gap-3 shadow-sm">
       <div>
         <p className="text-sm font-semibold uppercase tracking-wide text-wave-deep">{label}</p>
         <p className="mt-2 text-2xl font-black">{value}</p>
       </div>
-      <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-wave-mint text-wave-deep">
+      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-wave-mint text-wave-deep">
         {icon}
       </span>
     </div>

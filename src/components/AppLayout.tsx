@@ -17,6 +17,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const isAdminRoute = location.pathname.startsWith("/admin");
+  const nextLanguage = language === "zh" ? "en" : "zh";
   const signOutMutation = useMutation({
     mutationFn: signOutStaff,
     onSuccess: () => navigate("/")
@@ -41,32 +42,33 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 {salonName}
               </span>
             </Link>
-            {isAdminRoute && (
-              <span className="shrink-0 text-[13px] leading-tight text-wave-ink/75 sm:text-base">
-                {t("common.admin")}
-              </span>
-            )}
           </div>
           <nav className="ml-3 flex shrink-0 items-center gap-2 text-sm font-medium">
-            <div
-              className="flex rounded-full border border-wave-deep/10 bg-wave-mint p-1"
+            <button
+              type="button"
+              role="switch"
+              aria-checked={language === "en"}
               aria-label={t("app.language")}
-              >
+              onClick={() => setLanguage(nextLanguage)}
+              className="focus-ring relative grid h-9 w-[5.75rem] grid-cols-2 items-center overflow-hidden rounded-full border border-wave-deep/10 bg-wave-mint p-1 text-xs font-bold shadow-sm transition-colors"
+            >
+              <span
+                aria-hidden="true"
+                className={`absolute left-1 top-1 h-7 w-[calc(50%-0.25rem)] rounded-full bg-wave-deep shadow-sm transition-transform duration-300 ease-out motion-reduce:transition-none ${
+                  language === "en" ? "translate-x-full" : "translate-x-0"
+                }`}
+              />
               {languageOptions.map((option) => (
-                <button
+                <span
                   key={option.id}
-                  type="button"
-                  onClick={() => setLanguage(option.id)}
-                  className={`focus-ring rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                    language === option.id
-                      ? "bg-wave-deep text-white"
-                      : "text-wave-ink/70 hover:text-wave-ink"
+                  className={`relative z-10 flex h-7 items-center justify-center rounded-full transition-colors duration-300 motion-reduce:transition-none ${
+                    language === option.id ? "text-white" : "text-wave-ink/70"
                   }`}
                 >
                   {option.label}
-                </button>
+                </span>
               ))}
-            </div>
+            </button>
             {isAdminRoute ? (
               <button
                 type="button"

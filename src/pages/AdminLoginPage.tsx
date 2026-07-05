@@ -30,18 +30,18 @@ export function AdminLoginPage() {
           event.preventDefault();
           mutation.mutate();
         }}
-        className="rounded-3xl border border-wave-deep/10 bg-white p-6"
+        className="ui-surface"
       >
         <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-wave-mint text-wave-deep">
           <LockKeyhole />
         </div>
         <label className="block">
           <span className="mb-2 block text-sm font-semibold">{t("admin.login.email")}</span>
-          <input className="focus-ring w-full rounded-xl border border-wave-deep/15 px-3 py-3" value={email} onChange={(event) => setEmail(event.target.value)} />
+          <input className="ui-field" value={email} onChange={(event) => setEmail(event.target.value)} />
         </label>
         <label className="mt-4 block">
           <span className="mb-2 block text-sm font-semibold">{t("admin.login.password")}</span>
-          <input className="focus-ring w-full rounded-xl border border-wave-deep/15 px-3 py-3" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+          <input className="ui-field" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
         </label>
         {mutation.error && <p className="mt-4 rounded-xl bg-wave-deep/10 p-3 text-sm text-wave-deep">{mutation.error.message}</p>}
         <button type="submit" className="focus-ring mt-6 w-full rounded-full bg-wave-deep px-5 py-3 font-semibold text-white">

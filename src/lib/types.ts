@@ -9,6 +9,7 @@ export interface Service {
   name: string;
   description: string;
   durationMinutes: number;
+  calendarBlockMinutes?: number;
   priceCents: number;
   priceMaxCents?: number | null;
   priceIsStartingAt?: boolean;

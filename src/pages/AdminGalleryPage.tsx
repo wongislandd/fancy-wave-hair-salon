@@ -150,7 +150,7 @@ export function AdminGalleryPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[390px_minmax(0,1fr)]">
-        <section className="rounded-3xl border border-wave-deep/10 bg-white p-5">
+        <section className="ui-surface-compact">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-xl font-black">{t("admin.gallery.listTitle")}</h2>
@@ -158,26 +158,27 @@ export function AdminGalleryPage() {
             </div>
             <button
               type="button"
-              className="focus-ring rounded-full bg-wave-mint p-2 text-wave-deep"
+              className="focus-ring inline-flex items-center gap-2 rounded-full bg-wave-deep px-4 py-2 text-sm font-semibold text-white"
               onClick={handleNewPhoto}
               aria-label={t("admin.gallery.newPhoto")}
             >
-              <Plus size={18} />
+              <Plus size={17} />
+              <span>{t("admin.gallery.newPhoto")}</span>
             </button>
           </div>
 
-          <div className="mt-5 space-y-3">
-            {galleryQuery.isLoading && <p>{t("admin.gallery.loading")}</p>}
+          <div className="mt-4 overflow-hidden rounded-2xl border border-wave-deep/10">
+            {galleryQuery.isLoading && <p className="p-4">{t("admin.gallery.loading")}</p>}
             {photos.map((photo, index) => {
               const photoText = getLocalizedGalleryPhotoText(photo, language);
 
               return (
                 <article
                   key={photo.id}
-                  className={`grid grid-cols-[84px_minmax(0,1fr)_auto] gap-3 rounded-2xl border p-3 transition ${
+                  className={`grid grid-cols-[84px_minmax(0,1fr)_auto] gap-3 border-t border-wave-deep/10 p-3 transition first:border-t-0 ${
                     selectedId === photo.id
-                      ? "border-wave-deep bg-wave-mint"
-                      : "border-wave-deep/10 bg-white"
+                      ? "bg-wave-mint/60"
+                      : "bg-white hover:bg-wave-mint/35"
                   }`}
                 >
                   <button
@@ -201,17 +202,23 @@ export function AdminGalleryPage() {
                     }}
                   >
                     <span className="block truncate font-bold">{photoText.altText}</span>
-                    <span className="mt-2 inline-flex rounded-full bg-white/80 px-2.5 py-1 text-xs font-semibold text-wave-deep">
+                    <span className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-wave-ink/65">
+                      <span
+                        className={`ui-status-dot ${
+                          photo.isActive ? "bg-emerald-500" : "bg-wave-ink/35"
+                        }`}
+                        aria-hidden="true"
+                      />
                       {photo.isActive ? t("common.active") : t("common.hidden")}
                     </span>
                   </button>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col items-center justify-center gap-1">
                     <button
                       type="button"
                       aria-label={t("admin.gallery.moveUp")}
                       disabled={index === 0 || reorderMutation.isPending}
                       onClick={() => movePhoto(photo, -1)}
-                      className="focus-ring rounded-full border border-wave-deep/10 bg-white p-2 disabled:opacity-35"
+                      className="focus-ring inline-flex h-8 w-8 items-center justify-center rounded-full text-wave-ink/60 hover:bg-white disabled:opacity-35"
                     >
                       <ArrowUp size={16} />
                     </button>
@@ -220,7 +227,7 @@ export function AdminGalleryPage() {
                       aria-label={t("admin.gallery.moveDown")}
                       disabled={index === photos.length - 1 || reorderMutation.isPending}
                       onClick={() => movePhoto(photo, 1)}
-                      className="focus-ring rounded-full border border-wave-deep/10 bg-white p-2 disabled:opacity-35"
+                      className="focus-ring inline-flex h-8 w-8 items-center justify-center rounded-full text-wave-ink/60 hover:bg-white disabled:opacity-35"
                     >
                       <ArrowDown size={16} />
                     </button>
@@ -229,18 +236,15 @@ export function AdminGalleryPage() {
               );
             })}
             {!galleryQuery.isLoading && photos.length === 0 && (
-              <p className="rounded-2xl bg-wave-mint/70 p-4 text-sm text-wave-ink/70">
+              <p className="ui-subtle-note">
                 {t("admin.gallery.empty")}
               </p>
             )}
           </div>
         </section>
 
-        <section className="rounded-3xl border border-wave-deep/10 bg-white p-5 sm:p-6">
-          <div className="flex items-start gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-wave-mint text-wave-deep">
-              <Image size={21} />
-            </span>
+        <section className="ui-surface">
+          <div className="border-b border-wave-deep/10 pb-5">
             <div>
               <h2 className="text-xl font-black">
                 {selectedPhoto ? t("admin.gallery.edit") : t("admin.gallery.new")}
@@ -248,7 +252,7 @@ export function AdminGalleryPage() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4">
+          <div className="mt-6 grid gap-6">
             <div>
               <p className="mb-2 block text-sm font-semibold">{t("admin.gallery.file")}</p>
               <input
@@ -260,7 +264,7 @@ export function AdminGalleryPage() {
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                 disabled={Boolean(selectedPhoto)}
               />
-              <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-wave-deep/10 bg-white px-4 py-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <label
                   htmlFor="gallery-photo-file-input"
                   aria-disabled={Boolean(selectedPhoto)}
@@ -280,7 +284,7 @@ export function AdminGalleryPage() {
             </div>
 
             {previewImageUrl && (
-              <div className="overflow-hidden rounded-3xl border border-wave-deep/10 bg-wave-mint">
+              <div className="overflow-hidden rounded-2xl bg-wave-mint">
                 <img
                   src={previewImageUrl}
                   alt={previewAlt}
@@ -289,23 +293,23 @@ export function AdminGalleryPage() {
               </div>
             )}
 
-            <div className="grid gap-4 lg:grid-cols-2">
-              <section className="rounded-2xl border border-wave-deep/10 p-4">
-                <h3 className="font-black">{t("admin.gallery.altTextEn")}</h3>
+            <div className="ui-section-divider grid gap-6 lg:grid-cols-2 lg:divide-x lg:divide-wave-deep/10">
+              <section>
+                <h3 className="text-sm font-black text-wave-ink/65">{t("admin.gallery.altTextEn")}</h3>
                 <input
                   aria-label={t("admin.gallery.altTextEn")}
-                  className="focus-ring mt-4 w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
+                  className="ui-field mt-4"
                   value={form.altTextEn}
                   onChange={(event) => setForm({ ...form, altTextEn: event.target.value })}
                   placeholder={t("admin.gallery.altTextEnPlaceholder")}
                 />
               </section>
 
-              <section className="rounded-2xl border border-wave-deep/10 p-4">
-                <h3 className="font-black">{t("admin.gallery.altTextZh")}</h3>
+              <section className="lg:pl-6">
+                <h3 className="text-sm font-black text-wave-ink/65">{t("admin.gallery.altTextZh")}</h3>
                 <input
                   aria-label={t("admin.gallery.altTextZh")}
-                  className="focus-ring mt-4 w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
+                  className="ui-field mt-4"
                   value={form.altTextZh}
                   onChange={(event) => setForm({ ...form, altTextZh: event.target.value })}
                   placeholder={t("admin.gallery.altTextZhPlaceholder")}
@@ -313,7 +317,7 @@ export function AdminGalleryPage() {
               </section>
             </div>
 
-            <label className="flex items-center justify-between gap-4 rounded-2xl border border-wave-deep/10 px-4 py-3">
+            <label className="ui-section-divider flex cursor-pointer items-center justify-between gap-4">
               <span>
                 <span className="block font-semibold">{t("admin.gallery.activePublicly")}</span>
                 <span className="text-sm text-wave-ink/60">{t("admin.gallery.visibleHome")}</span>
@@ -322,8 +326,9 @@ export function AdminGalleryPage() {
                 type="checkbox"
                 checked={form.isActive}
                 onChange={(event) => setForm({ ...form, isActive: event.target.checked })}
-                className="h-5 w-5"
+                className="peer sr-only"
               />
+              <span className="ui-switch" />
             </label>
           </div>
 
@@ -369,12 +374,12 @@ export function AdminGalleryPage() {
 
 function Metric({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-wave-deep/10 bg-white px-5 py-4 shadow-sm">
+    <div className="ui-surface-compact flex items-center justify-between gap-3 shadow-sm">
       <div>
         <p className="text-sm font-semibold uppercase tracking-wide text-wave-deep">{label}</p>
         <p className="mt-2 text-2xl font-black">{value}</p>
       </div>
-      <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-wave-mint text-wave-deep">
+      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-wave-mint text-wave-deep">
         {icon}
       </span>
     </div>

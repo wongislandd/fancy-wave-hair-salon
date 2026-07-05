@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent, type ReactNode } from "react";
-import { CalendarPlus, Clock, Moon, Pencil, Sun, Trash2, X } from "lucide-react";
+import { CalendarPlus, Moon, Pencil, Sun, Trash2, X } from "lucide-react";
 import { AdminShell } from "../components/AdminShell";
 import {
   deleteBusinessHourException,
@@ -125,20 +125,17 @@ export function AdminHoursPage() {
         <Metric label={t("admin.hours.specialHours")} value={String(specialHours.length)} icon={<CalendarPlus size={18} />} />
       </div>
 
-      <section className="rounded-3xl border border-wave-deep/10 bg-white p-5 sm:p-6">
+      <section className="ui-surface">
         <div className="mb-5 flex items-center justify-between gap-3">
           <h2 className="text-xl font-black">{t("admin.hours.weeklyTitle")}</h2>
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-wave-mint text-wave-deep">
-            <Clock size={18} />
-          </span>
         </div>
-        <div className="grid gap-3">
+        <div className="ui-divided-list">
           {hoursQuery.isLoading && <p>{t("admin.hours.loading")}</p>}
           {hours.map((hour) => (
             <article
               key={hour.id}
-              className={`grid gap-3 rounded-2xl border p-4 lg:grid-cols-[150px_minmax(0,1fr)_160px] lg:items-start ${
-                hour.isClosed ? "border-wave-deep/10 bg-wave-mint/55" : "border-wave-deep/15 bg-white"
+              className={`ui-divided-row grid gap-3 lg:grid-cols-[150px_minmax(0,1fr)_160px] lg:items-start ${
+                hour.isClosed ? "opacity-70" : ""
               }`}
             >
               <div className="lg:pt-7">
@@ -150,7 +147,7 @@ export function AdminHoursPage() {
                 <label className="block">
                   <span className="mb-2 block text-sm font-semibold">{t("common.open")}</span>
                   <input
-                    className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3 disabled:bg-wave-mint/70 disabled:text-wave-ink/45"
+                    className="ui-field disabled:bg-wave-mint/70 disabled:text-wave-ink/45"
                     type="time"
                     value={hour.opensAt}
                     disabled={hour.isClosed}
@@ -160,7 +157,7 @@ export function AdminHoursPage() {
                 <label className="block">
                   <span className="mb-2 block text-sm font-semibold">{t("common.close")}</span>
                   <input
-                    className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3 disabled:bg-wave-mint/70 disabled:text-wave-ink/45"
+                    className="ui-field disabled:bg-wave-mint/70 disabled:text-wave-ink/45"
                     type="time"
                     value={hour.closesAt}
                     disabled={hour.isClosed}
@@ -169,7 +166,7 @@ export function AdminHoursPage() {
                 </label>
               </div>
 
-              <label className="flex min-h-[50px] items-center justify-between gap-3 rounded-2xl border border-wave-deep/10 px-4 py-3 font-semibold lg:mt-7 lg:justify-center">
+              <label className="flex min-h-[50px] items-center justify-between gap-3 rounded-2xl bg-wave-mint/45 px-4 py-3 font-semibold lg:mt-7 lg:justify-center">
                 <span>{t("common.closed")}</span>
                 <input
                   type="checkbox"
@@ -183,7 +180,7 @@ export function AdminHoursPage() {
         </div>
       </section>
 
-      <section className="mt-6 rounded-3xl border border-wave-deep/10 bg-white p-5 sm:p-6">
+      <section className="ui-surface mt-6">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xl font-black">{t("admin.hours.specialTitle")}</h2>
           {editingExceptionId && (
@@ -199,11 +196,11 @@ export function AdminHoursPage() {
           )}
         </div>
 
-        <form onSubmit={submitException} className="grid gap-3 rounded-2xl border border-wave-deep/10 bg-wave-mint/35 p-4 lg:grid-cols-[1fr_1fr_1fr_1fr_150px] lg:items-end">
+        <form onSubmit={submitException} className="grid gap-3 border-t border-wave-deep/10 pt-5 lg:grid-cols-[1fr_1fr_1fr_1fr_150px] lg:items-end">
           <label className="block">
             <span className="mb-2 block text-sm font-semibold">{t("admin.hours.startsOn")}</span>
             <input
-              className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
+              className="ui-field"
               type="date"
               value={exceptionForm.startsOn}
               onChange={(event) => {
@@ -219,7 +216,7 @@ export function AdminHoursPage() {
           <label className="block">
             <span className="mb-2 block text-sm font-semibold">{t("admin.hours.endsOn")}</span>
             <input
-              className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
+              className="ui-field"
               type="date"
               min={exceptionForm.startsOn}
               value={exceptionForm.endsOn}
@@ -229,7 +226,7 @@ export function AdminHoursPage() {
           <label className="block">
             <span className="mb-2 block text-sm font-semibold">{t("common.open")}</span>
             <input
-              className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3 disabled:bg-white/60 disabled:text-wave-ink/45"
+              className="ui-field disabled:bg-wave-mint/50 disabled:text-wave-ink/45"
               type="time"
               disabled={exceptionForm.isClosed}
               value={exceptionForm.opensAt}
@@ -239,14 +236,14 @@ export function AdminHoursPage() {
           <label className="block">
             <span className="mb-2 block text-sm font-semibold">{t("common.close")}</span>
             <input
-              className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3 disabled:bg-white/60 disabled:text-wave-ink/45"
+              className="ui-field disabled:bg-wave-mint/50 disabled:text-wave-ink/45"
               type="time"
               disabled={exceptionForm.isClosed}
               value={exceptionForm.closesAt}
               onChange={(event) => setExceptionForm((current) => ({ ...current, closesAt: event.target.value }))}
             />
           </label>
-          <label className="flex min-h-[50px] items-center justify-between gap-3 rounded-2xl border border-wave-deep/10 bg-white px-4 py-3 font-semibold">
+          <label className="flex min-h-[50px] items-center justify-between gap-3 rounded-2xl bg-wave-mint/45 px-4 py-3 font-semibold">
             <span>{t("common.closed")}</span>
             <input
               type="checkbox"
@@ -258,7 +255,7 @@ export function AdminHoursPage() {
           <label className="block lg:col-span-4">
             <span className="mb-2 block text-sm font-semibold">{t("admin.hours.note")}</span>
             <input
-              className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
+              className="ui-field"
               value={exceptionForm.note ?? ""}
               placeholder={t("admin.hours.notePlaceholder")}
               onChange={(event) => setExceptionForm((current) => ({ ...current, note: event.target.value }))}
@@ -281,18 +278,18 @@ export function AdminHoursPage() {
         {hasInvalidHours && <p className="mt-3 text-sm font-semibold text-red-700">{t("admin.hours.invalidHours")}</p>}
         {exceptionError instanceof Error && <p className="mt-3 text-sm font-semibold text-red-700">{exceptionError.message}</p>}
 
-        <div className="mt-5 grid gap-3">
+        <div className="ui-divided-list mt-5">
           {exceptionsQuery.isLoading && <p>{t("admin.hours.loadingSpecial")}</p>}
           {!exceptionsQuery.isLoading && specialHours.length === 0 && (
-            <p className="rounded-2xl border border-dashed border-wave-deep/15 px-4 py-5 text-sm font-semibold text-wave-ink/65">
+            <p className="py-5 text-sm font-semibold text-wave-ink/65">
               {t("admin.hours.emptySpecial")}
             </p>
           )}
           {specialHours.map((exception) => (
             <article
               key={exception.id}
-              className={`grid gap-3 rounded-2xl border p-4 sm:grid-cols-[minmax(0,1fr)_160px_96px] sm:items-center ${
-                exception.isClosed ? "border-wave-deep/10 bg-wave-mint/55" : "border-wave-deep/15 bg-white"
+              className={`ui-divided-row grid gap-3 sm:grid-cols-[minmax(0,1fr)_160px_96px] sm:items-center ${
+                exception.isClosed ? "opacity-70" : ""
               }`}
             >
               <div>
@@ -333,12 +330,12 @@ export function AdminHoursPage() {
 
 function Metric({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-wave-deep/10 bg-white px-5 py-4 shadow-sm">
+    <div className="ui-surface-compact flex items-center justify-between gap-3 shadow-sm">
       <div>
         <p className="text-sm font-semibold uppercase tracking-wide text-wave-deep">{label}</p>
         <p className="mt-2 text-2xl font-black">{value}</p>
       </div>
-      <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-wave-mint text-wave-deep">
+      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-wave-mint text-wave-deep">
         {icon}
       </span>
     </div>

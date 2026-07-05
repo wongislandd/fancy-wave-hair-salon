@@ -134,6 +134,29 @@ describe("AdminServicesPage", () => {
     expect(await screen.findByText("column services.price_max_cents does not exist")).toBeTruthy();
   });
 
+  it("saves customer duration separately from calendar block duration", async () => {
+    const user = userEvent.setup();
+
+    renderAdminServicesPage();
+
+    await user.click(await screen.findByRole("button", { name: "Men's Haircut 30 min / $28 Active" }));
+    await user.clear(screen.getByLabelText("Shown to customers"));
+    await user.type(screen.getByLabelText("Shown to customers"), "240");
+    await user.clear(screen.getByLabelText("Blocks calendar"));
+    await user.type(screen.getByLabelText("Blocks calendar"), "60");
+    await user.click(screen.getByRole("button", { name: "Save service" }));
+
+    expect(saveService).toHaveBeenCalledWith(
+      expect.objectContaining({
+        durationMinutes: 240,
+        calendarBlockMinutes: 60
+      }),
+      "service-exact"
+    );
+    expect(screen.getByTitle("The duration guests see in booking, confirmations, and service details.")).toBeTruthy();
+    expect(screen.getByTitle("How long this service makes the stylist unavailable on the salon calendar.")).toBeTruthy();
+  });
+
   it("saves the admin service order when a service is moved", async () => {
     const user = userEvent.setup();
 

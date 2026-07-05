@@ -30,6 +30,10 @@ export function calculateAppointmentEnd(
   return new Date(new Date(startsAt).getTime() + durationMinutes * 60_000);
 }
 
+export function getServiceCalendarBlockMinutes(service: Service): number {
+  return service.calendarBlockMinutes ?? service.durationMinutes;
+}
+
 export function isCustomerManageableStatus(
   status: AppointmentStatus
 ): boolean {
@@ -114,7 +118,7 @@ export function deriveAvailableSlots({
   const open = zonedDateAndTimeToUtc(date, hours.opensAt, salonTimeZone);
   const close = zonedDateAndTimeToUtc(date, hours.closesAt, salonTimeZone);
   const slots: AvailableSlot[] = [];
-  const durationMs = service.durationMinutes * 60_000;
+  const durationMs = getServiceCalendarBlockMinutes(service) * 60_000;
   const intervalMs = slotIntervalMinutes * 60_000;
 
   for (

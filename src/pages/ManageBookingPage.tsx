@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
-import { CalendarX2, RotateCw } from "lucide-react";
+import confetti from "canvas-confetti";
+import { Link, useLocation, useParams } from "react-router-dom";
+import { CalendarPlus, CalendarX2, ChevronDown, RotateCw } from "lucide-react";
 import {
   cancelManagedBooking,
   getAvailableSlots,
@@ -12,12 +13,15 @@ import {
   rescheduleManagedBooking
 } from "../lib/data";
 import {
+  buildManageBookingPath,
+  calculateAppointmentEnd,
   formatAppointmentRange,
   formatDateKeyInTimeZone,
   formatPriceRange,
   formatTimeInTimeZone,
   isCustomerManageableStatus
 } from "../lib/booking";
+import { buildAppointmentCalendarLinks } from "../lib/calendar";
 import { StatusBadge } from "../components/StatusBadge";
 import { useLanguage } from "../lib/use-language";
 import {
@@ -27,13 +31,19 @@ import {
 import type { AvailableSlot, Service, Stylist } from "../lib/types";
 import { salonName } from "../lib/salon";
 
+const bookingConfettiStoragePrefix = "fancy-wave-booking-confetti";
+const bookingConfettiColors = ["#f97373", "#facc15", "#5eead4", "#60a5fa", "#f472b6"];
+
 export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }) {
   const { language, t } = useLanguage();
   const locale = localeForLanguage(language);
   const { token = "" } = useParams();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [date, setDate] = useState(nextBookableDates(1)[0]);
   const [slot, setSlot] = useState<AvailableSlot | null>(null);
+  const [calendarMenuOpen, setCalendarMenuOpen] = useState(false);
+  const confettiPlayedRef = useRef(false);
   const dates = useMemo(() => nextBookableDates(8), []);
 
   const bookingQuery = useQuery({
@@ -54,6 +64,26 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
   const serviceName = booking
     ? getManageableBookingServiceName(booking, language, service)
     : "";
+  const customerEndsAt = booking
+    ? calculateAppointmentEnd(booking.startsAt, booking.serviceDurationMinutes).toISOString()
+    : "";
+  const manageUrl = useMemo(() => {
+    const path = buildManageBookingPath(token);
+    if (typeof window === "undefined") return path;
+    return new URL(path, window.location.origin).toString();
+  }, [token]);
+  const calendarLinks = useMemo(() => {
+    if (!booking || !serviceName) return null;
+
+    return buildAppointmentCalendarLinks({
+      bookingReference: booking.bookingReference,
+      serviceName,
+      stylistName: booking.stylistName,
+      startsAt: booking.startsAt,
+      endsAt: customerEndsAt,
+      manageUrl
+    });
+  }, [booking, customerEndsAt, manageUrl, serviceName]);
 
   const slotsQuery = useQuery({
     queryKey: ["managed-slots", booking?.serviceId, booking?.stylistId, date],
@@ -78,6 +108,23 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
     }
   });
 
+  useEffect(() => {
+    if (confettiPlayedRef.current) return;
+
+    if (!booking || !shouldCelebrateBookingConfirmation(confirmed, token, location.state)) {
+      return;
+    }
+
+    const storageKey = `${bookingConfettiStoragePrefix}:${token}`;
+    if (hasSessionStorageFlag(storageKey)) {
+      return;
+    }
+
+    confettiPlayedRef.current = true;
+    setSessionStorageFlag(storageKey);
+    launchBookingConfetti();
+  }, [booking, confirmed, location.state, token]);
+
   if (bookingQuery.isLoading) {
     return <PageShell title={t("manage.loading")} />;
   }
@@ -101,7 +148,7 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
       subtitle={confirmed ? t("manage.confirmationEmailHint") : undefined}
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
-        <section className="rounded-3xl border border-wave-deep/10 bg-white p-6">
+        <section className="ui-surface">
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <p className="text-sm font-semibold uppercase tracking-wide text-wave-deep">{booking.bookingReference}</p>
@@ -109,17 +156,17 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
             </div>
             <StatusBadge status={booking.status} />
           </div>
-          <dl className="space-y-4 text-sm font-medium">
-            <div>
+          <dl className="ui-divided-list text-sm font-medium">
+            <div className="ui-divided-row">
               <dt className="font-semibold">{t("manage.when")}</dt>
-              <dd className="mt-1 text-wave-ink/80">{formatAppointmentRange(booking.startsAt, booking.endsAt, undefined, locale)}</dd>
+              <dd className="mt-1 text-wave-ink/80">{formatAppointmentRange(booking.startsAt, customerEndsAt, undefined, locale)}</dd>
             </div>
-            <div>
+            <div className="ui-divided-row">
               <dt className="font-semibold">{t("manage.guest")}</dt>
               <dd className="mt-1 text-wave-ink/80">{booking.customerName} / {booking.customerEmail}</dd>
               <dd className="mt-1 text-wave-ink/70">{booking.customerPhone}</dd>
             </div>
-            <div>
+            <div className="ui-divided-row">
               <dt className="font-semibold">{t("manage.service")}</dt>
               <dd className="mt-1 text-wave-ink/80">
                 {booking.serviceDurationMinutes} {t("common.min")} / {formatPriceRange({
@@ -129,25 +176,70 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
                 }, locale)}
               </dd>
             </div>
-            <div>
+            <div className="ui-divided-row">
               <dt className="font-semibold">{t("manage.stylist")}</dt>
               <dd className="mt-1 text-wave-ink/80">{booking.stylistName}</dd>
             </div>
             {booking.notes && (
-              <div>
+              <div className="ui-divided-row">
                 <dt className="font-semibold">{t("manage.yourNote")}</dt>
-                <dd className="mt-1 rounded-2xl bg-wave-mint/70 p-3 text-wave-ink/85">{booking.notes}</dd>
+                <dd className="mt-1 text-wave-ink/85">{booking.notes}</dd>
               </div>
             )}
           </dl>
+          {booking.status === "confirmed" && calendarLinks && (
+            <div className="relative mt-6 inline-block">
+              <button
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={calendarMenuOpen}
+                onClick={() => setCalendarMenuOpen((isOpen) => !isOpen)}
+                className="focus-ring inline-flex items-center gap-2 rounded-full bg-wave-deep px-5 py-3 text-sm font-semibold text-white"
+              >
+                <CalendarPlus size={18} />
+                {t("manage.addToCalendar")}
+                <ChevronDown
+                  size={16}
+                  className={`transition-transform ${calendarMenuOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {calendarMenuOpen && (
+                <div
+                  role="menu"
+                  className="absolute left-0 z-10 mt-2 min-w-56 overflow-hidden rounded-2xl border border-wave-deep/10 bg-white py-2 text-sm font-semibold shadow-xl"
+                >
+                  <a
+                    role="menuitem"
+                    href={calendarLinks.googleUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => setCalendarMenuOpen(false)}
+                    className="focus-ring block px-4 py-3 text-wave-ink/85 hover:bg-wave-mint/70"
+                  >
+                    {t("manage.googleCalendar")}
+                  </a>
+                  <a
+                    role="menuitem"
+                    href={calendarLinks.icsDataUri}
+                    download={calendarLinks.fileName}
+                    type="text/calendar"
+                    onClick={() => setCalendarMenuOpen(false)}
+                    className="focus-ring block px-4 py-3 text-wave-ink/85 hover:bg-wave-mint/70"
+                  >
+                    {t("manage.appleCalendar")}
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
           {!manageable && (
-            <p className="mt-5 rounded-2xl bg-wave-mint p-4 text-sm font-medium text-wave-ink/80">
+            <p className="ui-subtle-note mt-5 font-medium">
               {t("manage.locked")}
             </p>
           )}
         </section>
 
-        <section className="rounded-3xl border border-wave-deep/10 bg-white p-6">
+        <section className="ui-surface">
           <h2 className="text-xl font-bold">{t("manage.changeTitle")}</h2>
           <div className="mt-5 grid gap-5">
             <div>
@@ -176,14 +268,14 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
                     type="button"
                     disabled={!manageable}
                     onClick={() => setSlot(availableSlot)}
-                    className={`focus-ring rounded-xl border px-4 py-3 font-semibold disabled:opacity-60 ${slot?.startsAt === availableSlot.startsAt ? "border-wave-deep bg-wave-mint" : "border-wave-deep/10"}`}
+                    className={`focus-ring rounded-xl border px-4 py-3 font-semibold disabled:opacity-60 ${slot?.startsAt === availableSlot.startsAt ? "border-wave-deep bg-wave-mint/70" : "border-wave-deep/10 hover:bg-wave-mint/35"}`}
                   >
                     {formatTimeInTimeZone(availableSlot.startsAt, undefined, locale)}
                   </button>
                 ))}
               </div>
               {!slotsQuery.isFetching && slotsQuery.data?.length === 0 && (
-                <p className="mt-4 rounded-2xl bg-wave-mint/70 p-4 text-sm font-medium text-wave-ink/85">
+                <p className="ui-subtle-note mt-4 font-medium">
                   {t("manage.noOpenings")}
                 </p>
               )}
@@ -216,6 +308,72 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
       </div>
     </PageShell>
   );
+}
+
+function shouldCelebrateBookingConfirmation(
+  confirmed: boolean,
+  token: string,
+  locationState: unknown
+): boolean {
+  return confirmed && Boolean(token) && isBookingJustCompletedState(locationState);
+}
+
+function isBookingJustCompletedState(state: unknown): state is { bookingJustCompleted: true } {
+  return Boolean(
+    state &&
+    typeof state === "object" &&
+    (state as { bookingJustCompleted?: unknown }).bookingJustCompleted === true
+  );
+}
+
+function hasSessionStorageFlag(key: string): boolean {
+  try {
+    return window.sessionStorage.getItem(key) === "shown";
+  } catch {
+    return false;
+  }
+}
+
+function setSessionStorageFlag(key: string): void {
+  try {
+    window.sessionStorage.setItem(key, "shown");
+  } catch {
+    // The animation can still play if storage is unavailable.
+  }
+}
+
+function launchBookingConfetti(): void {
+  const defaults = {
+    colors: bookingConfettiColors,
+    disableForReducedMotion: true,
+    zIndex: 100
+  };
+
+  confetti({
+    ...defaults,
+    particleCount: 90,
+    spread: 72,
+    startVelocity: 38,
+    origin: { x: 0.5, y: 0.28 }
+  });
+
+  confetti({
+    ...defaults,
+    angle: 60,
+    particleCount: 35,
+    spread: 55,
+    startVelocity: 42,
+    origin: { x: 0, y: 0.55 }
+  });
+
+  confetti({
+    ...defaults,
+    angle: 120,
+    particleCount: 35,
+    spread: 55,
+    startVelocity: 42,
+    origin: { x: 1, y: 0.55 }
+  });
 }
 
 function PageShell({
@@ -252,12 +410,23 @@ function synthesizeService(
     name: booking.serviceName,
     description: "",
     durationMinutes: booking.serviceDurationMinutes,
+    calendarBlockMinutes: getBookingCalendarBlockMinutes(booking),
     priceCents: booking.servicePriceCents,
     priceMaxCents: booking.servicePriceMaxCents ?? null,
     priceIsStartingAt: Boolean(booking.servicePriceIsStartingAt),
     isActive: true,
     displayOrder: 0
   };
+}
+
+function getBookingCalendarBlockMinutes(
+  booking: NonNullable<Awaited<ReturnType<typeof loadBookingByToken>>>
+): number {
+  const blockMinutes = Math.round(
+    (new Date(booking.endsAt).getTime() - new Date(booking.startsAt).getTime()) / 60_000
+  );
+
+  return blockMinutes > 0 ? blockMinutes : booking.serviceDurationMinutes;
 }
 
 function synthesizeStylist(

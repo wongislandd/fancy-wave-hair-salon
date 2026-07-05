@@ -114,6 +114,30 @@ describe("booking domain helpers", () => {
     ]);
   });
 
+  it("uses the calendar block duration when deriving availability", () => {
+    const treatment: Service = {
+      ...haircut,
+      durationMinutes: 240,
+      calendarBlockMinutes: 60
+    };
+
+    const slots = deriveAvailableSlots({
+      date: "2026-07-06",
+      service: treatment,
+      businessHours: mondayHours,
+      existingAppointments: [],
+      salonTimeZone: "UTC",
+      slotIntervalMinutes: 30,
+      stylistId: "stylist-1",
+      now: new Date("2026-07-05T12:00:00.000Z")
+    });
+
+    expect(slots.at(-1)).toMatchObject({
+      startsAt: "2026-07-06T16:00:00.000Z",
+      endsAt: "2026-07-06T17:00:00.000Z"
+    });
+  });
+
   it("blocks overlapping slots only for the selected stylist", () => {
     const existingAppointments: Appointment[] = [
       {

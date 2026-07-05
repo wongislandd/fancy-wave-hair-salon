@@ -14,6 +14,7 @@ export const serviceFormSchema = z.object({
   descriptionEn: z.string().trim(),
   descriptionZh: z.string().trim(),
   durationMinutes: z.coerce.number().int().min(15).max(360),
+  calendarBlockMinutes: z.coerce.number().int().min(15).max(360).optional(),
   priceDollars: z.coerce.number().min(0).max(1000),
   priceMaxDollars: optionalPriceDollarsSchema.default(null),
   priceIsStartingAt: z.boolean().default(false),

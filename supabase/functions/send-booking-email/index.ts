@@ -347,7 +347,7 @@ function buildEmail({
       : `${siteUrl}/manage-booking/${encodeURIComponent(managementToken)}`;
   const formattedRange = formatAppointmentRange(
     appointment.starts_at,
-    appointment.ends_at,
+    getCustomerDisplayEndsAt(appointment),
     settings.timezone
   );
   const price = formatServicePrice(appointment);
@@ -434,10 +434,8 @@ function buildEmail({
             ${
               kind !== "booking_cancelled"
                 ? `<div style="margin-top:22px;padding:18px;border:1px solid #dbe9e4;border-radius:14px;background:#fbfdfc;">
-                    <div style="margin-bottom:12px;color:#132d29;font-size:15px;font-weight:700;">Add to calendar / 加入日历</div>
-                    <a href="${escapeHtml(calendar.googleUrl)}" style="display:inline-block;background:#207563;color:#ffffff;text-decoration:none;border-radius:999px;padding:12px 18px;font-weight:700;margin-right:8px;margin-bottom:8px;">Google Calendar</a>
-                    <a href="${escapeHtml(calendar.outlookUrl)}" style="display:inline-block;border:1px solid #207563;color:#207563;text-decoration:none;border-radius:999px;padding:11px 17px;font-weight:700;margin-bottom:8px;">Outlook</a>
-                    <p style="margin:8px 0 0;color:#4b615c;font-size:13px;line-height:1.6;">Apple Calendar, phone calendars, and other calendar apps can use the attached .ics file.<br>Apple、手机日历和其他日历应用可以打开附件中的 .ics 文件。</p>
+                    <div style="margin-bottom:8px;color:#132d29;font-size:15px;font-weight:700;">Calendar invite attached / 日历邀请已附上</div>
+                    <p style="margin:0;color:#4b615c;font-size:13px;line-height:1.6;">Your email app can use the attached .ics file to add this appointment to your calendar.<br>邮件已附上 .ics 日历邀请，日历应用可以使用该文件加入此预约。</p>
                   </div>`
                 : `<div style="margin-top:22px;padding:18px;border:1px solid #f0d4c7;border-radius:14px;background:#fff8f5;">
                     <div style="margin-bottom:8px;color:#3b1d16;font-size:15px;font-weight:700;">Calendar cancellation / 日历取消</div>
@@ -475,13 +473,7 @@ function buildEmail({
     "",
     manageUrl ? `Manage booking / 管理预约: ${manageUrl}` : "",
     kind !== "booking_cancelled"
-      ? `Add to Google Calendar / 加入 Google 日历: ${calendar.googleUrl}`
-      : "",
-    kind !== "booking_cancelled"
-      ? `Add to Outlook / 加入 Outlook 日历: ${calendar.outlookUrl}`
-      : "",
-    kind !== "booking_cancelled"
-      ? "Apple Calendar / Outlook desktop / phone calendars: open the attached .ics file."
+      ? "Calendar invite attached / 日历邀请已附上: open the attached .ics file if your calendar app does not add it automatically."
       : "Calendar cancellation / 日历取消: open the attached .ics file to remove or mark this event as cancelled.",
     kind !== "booking_cancelled" ? `Get directions / 查看路线: ${directionsUrl}` : "",
     kind === "booking_cancelled" ? `Book a new appointment / 重新预约: ${bookUrl}` : "",
@@ -551,66 +543,8 @@ function buildCalendarEvent({
       url
     }),
     filename: "fancy-wave-appointment.ics",
-    googleUrl: buildGoogleCalendarUrl({
-      appointment,
-      description,
-      summary,
-      timezone: settings.timezone
-    }),
-    method,
-    outlookUrl: buildOutlookCalendarUrl({
-      appointment,
-      description,
-      summary
-    })
+    method
   };
-}
-
-function buildGoogleCalendarUrl({
-  appointment,
-  description,
-  summary,
-  timezone
-}: {
-  appointment: AppointmentRow;
-  description: string;
-  summary: string;
-  timezone: string;
-}) {
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: summary,
-    dates: `${formatIcsDate(appointment.starts_at)}/${formatIcsDate(
-      appointment.ends_at
-    )}`,
-    details: description,
-    location: salonAddress,
-    ctz: timezone
-  });
-
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
-function buildOutlookCalendarUrl({
-  appointment,
-  description,
-  summary
-}: {
-  appointment: AppointmentRow;
-  description: string;
-  summary: string;
-}) {
-  const params = new URLSearchParams({
-    path: "/calendar/action/compose",
-    rru: "addevent",
-    subject: summary,
-    startdt: new Date(appointment.starts_at).toISOString(),
-    enddt: new Date(appointment.ends_at).toISOString(),
-    body: description,
-    location: salonAddress
-  });
-
-  return `https://outlook.live.com/calendar/0/deeplink/compose?${params.toString()}`;
 }
 
 function buildIcsContent({
@@ -643,7 +577,7 @@ function buildIcsContent({
     `UID:fancy-wave-${appointment.id}@fancywavehairsalon.gmail`,
     `DTSTAMP:${now}`,
     `DTSTART:${formatIcsDate(appointment.starts_at)}`,
-    `DTEND:${formatIcsDate(appointment.ends_at)}`,
+    `DTEND:${formatIcsDate(getCustomerDisplayEndsAt(appointment))}`,
     `SUMMARY:${escapeIcsText(summary)}`,
     `DESCRIPTION:${escapeIcsText(description)}`,
     `LOCATION:${escapeIcsText(salonAddress)}`,
@@ -774,6 +708,13 @@ function foldIcsLine(line: string): string {
 
   parts.push(remaining);
   return parts.join("\r\n ");
+}
+
+function getCustomerDisplayEndsAt(appointment: AppointmentRow): string {
+  return new Date(
+    new Date(appointment.starts_at).getTime() +
+      appointment.service_duration_minutes_snapshot * 60_000
+  ).toISOString();
 }
 
 function formatAppointmentRange(startsAt: string, endsAt: string, timezone: string) {

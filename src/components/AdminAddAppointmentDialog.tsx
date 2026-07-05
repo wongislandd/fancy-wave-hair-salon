@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -9,7 +9,8 @@ import {
   formatDateInTimeZone,
   formatDateKeyInTimeZone,
   formatPriceRange,
-  formatTimeInTimeZone
+  formatTimeInTimeZone,
+  getServiceCalendarBlockMinutes
 } from "../lib/booking";
 import { staffAppointmentFormSchema, type StaffAppointmentFormValues } from "../lib/admin";
 import {
@@ -21,16 +22,31 @@ import {
 } from "../lib/data";
 import { useLanguage } from "../lib/use-language";
 import { getLocalizedServiceText, getLocalizedStylistText, localeForLanguage } from "../lib/localization";
+import type { CalendarDraftSelection } from "../lib/calendar";
 import type { AvailableSlot, Service, Stylist } from "../lib/types";
 
-export function AdminAddAppointmentDialog({ onClose }: { onClose: () => void }) {
+type AdminAddAppointmentDialogProps = {
+  initialSelection?: CalendarDraftSelection;
+  onClose: () => void;
+};
+
+export function AdminAddAppointmentDialog({
+  initialSelection,
+  onClose
+}: AdminAddAppointmentDialogProps) {
   const { language, t } = useLanguage();
   const locale = localeForLanguage(language);
   const queryClient = useQueryClient();
-  const dates = useMemo(() => nextBookableDates(10), []);
+  const dates = useMemo(() => {
+    const bookableDates = nextBookableDates(10);
+    if (!initialSelection?.date || bookableDates.includes(initialSelection.date)) {
+      return bookableDates;
+    }
+    return [initialSelection.date, ...bookableDates];
+  }, [initialSelection?.date]);
   const [serviceId, setServiceId] = useState("");
   const [stylistId, setStylistId] = useState("");
-  const [date, setDate] = useState(dates[0] ?? "");
+  const [date, setDate] = useState(initialSelection?.date ?? dates[0] ?? "");
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
 
   const form = useForm<StaffAppointmentFormValues>({
@@ -72,6 +88,25 @@ export function AdminAddAppointmentDialog({ onClose }: { onClose: () => void }) 
   });
 
   const slots = slotsQuery.data ?? [];
+  const matchingInitialSlot = initialSelection && date === initialSelection.date
+    ? slots.find((slot) => slot.startsAt === initialSelection.startsAt)
+    : undefined;
+  const selectedServiceBlockMinutes = selectedService
+    ? getServiceCalendarBlockMinutes(selectedService)
+    : null;
+  const showInitialUnavailableMessage = Boolean(
+    initialSelection &&
+      canChooseTime &&
+      date === initialSelection.date &&
+      !slotsQuery.isFetching &&
+      !matchingInitialSlot &&
+      !selectedSlot
+  );
+  const showDurationAdjustment = Boolean(
+    initialSelection &&
+      selectedServiceBlockMinutes &&
+      selectedServiceBlockMinutes !== initialSelection.durationMinutes
+  );
 
   const mutation = useMutation({
     mutationFn: (values: StaffAppointmentFormValues) =>
@@ -111,6 +146,30 @@ export function AdminAddAppointmentDialog({ onClose }: { onClose: () => void }) 
     setSelectedSlot(slot);
     form.setValue("startsAt", slot.startsAt, { shouldValidate: true });
   }
+
+  useEffect(() => {
+    if (
+      !initialSelection ||
+      !canChooseTime ||
+      date !== initialSelection.date ||
+      selectedSlot ||
+      slotsQuery.isFetching ||
+      !matchingInitialSlot
+    ) {
+      return;
+    }
+
+    setSelectedSlot(matchingInitialSlot);
+    form.setValue("startsAt", matchingInitialSlot.startsAt, { shouldValidate: true });
+  }, [
+    canChooseTime,
+    date,
+    form,
+    initialSelection,
+    matchingInitialSlot,
+    selectedSlot,
+    slotsQuery.isFetching
+  ]);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-wave-ink/35 backdrop-blur-sm">
@@ -194,7 +253,7 @@ export function AdminAddAppointmentDialog({ onClose }: { onClose: () => void }) 
                 <h3 className="text-sm font-bold uppercase tracking-wide text-wave-deep">{t("booking.step.time")}</h3>
                 {!canChooseTime ? (
                   <div
-                    className="mt-3 rounded-2xl border border-dashed border-wave-deep/15 bg-wave-cream/45 p-4 text-sm font-medium text-wave-ink/55"
+                    className="ui-subtle-note mt-3 border border-dashed border-wave-deep/15 bg-transparent"
                     aria-disabled="true"
                   >
                     {t("admin.addAppointment.chooseServiceStylist")}
@@ -225,7 +284,7 @@ export function AdminAddAppointmentDialog({ onClose }: { onClose: () => void }) 
                       ))}
                     </div>
 
-                    <div className="mt-3 rounded-2xl border border-wave-deep/10 bg-wave-cream/60 p-4">
+                    <div className="ui-subtle-note mt-3">
                       {slotsQuery.isFetching && <p className="text-sm text-wave-ink/65">{t("admin.addAppointment.checkingAvailability")}</p>}
                       {!slotsQuery.isFetching && slots.length === 0 ? (
                         <p className="text-sm text-wave-ink/65">{t("booking.noTimes")}</p>
@@ -259,32 +318,61 @@ export function AdminAddAppointmentDialog({ onClose }: { onClose: () => void }) 
             </div>
 
             <div className="space-y-4">
-              <section className="rounded-2xl border border-wave-deep/10 bg-wave-mint/45 p-4">
+              {initialSelection && (
+                <section className="ui-subtle-note text-sm">
+                  <p className="font-bold">{t("admin.addAppointment.draftRange")}</p>
+                  <p className="mt-1 text-wave-ink/70">
+                    {t("admin.addAppointment.draftRangeCopy", {
+                      date: formatDateInTimeZone(initialSelection.startsAt, DEFAULT_SALON_TIME_ZONE, {
+                        weekday: "long",
+                        month: "long",
+                        day: "numeric"
+                      }, locale),
+                      start: formatSlotTime(initialSelection.startsAt, locale),
+                      end: formatSlotTime(initialSelection.endsAt, locale)
+                    })}
+                  </p>
+                  {showDurationAdjustment && selectedServiceBlockMinutes && (
+                    <p className="mt-2 text-wave-ink/70">
+                      {t("admin.addAppointment.durationAdjusted", {
+                        duration: selectedServiceBlockMinutes
+                      })}
+                    </p>
+                  )}
+                  {showInitialUnavailableMessage && (
+                    <p className="mt-2 font-semibold text-wave-deep">
+                      {t("admin.addAppointment.draggedSlotUnavailable")}
+                    </p>
+                  )}
+                </section>
+              )}
+
+              <section className="border-t border-wave-deep/10 pt-5">
                 <h3 className="text-sm font-bold uppercase tracking-wide text-wave-deep">{t("admin.addAppointment.guestDetails")}</h3>
                 <div className="mt-4 grid gap-4">
                   <Field label={t("admin.addAppointment.guestName")} error={form.formState.errors.customerName?.message}>
                     <input
-                      className="focus-ring w-full rounded-xl border border-wave-deep/15 px-3 py-3"
+                      className="ui-field"
                       {...form.register("customerName")}
                     />
                   </Field>
                   <Field label={t("booking.email")} error={form.formState.errors.customerEmail?.message}>
                     <input
-                      className="focus-ring w-full rounded-xl border border-wave-deep/15 px-3 py-3"
+                      className="ui-field"
                       inputMode="email"
                       {...form.register("customerEmail")}
                     />
                   </Field>
                   <Field label={t("booking.phone")} error={form.formState.errors.customerPhone?.message}>
                     <input
-                      className="focus-ring w-full rounded-xl border border-wave-deep/15 px-3 py-3"
+                      className="ui-field"
                       inputMode="tel"
                       {...form.register("customerPhone")}
                     />
                   </Field>
                   <Field label={t("drawer.staffNotes")} error={form.formState.errors.internalNotes?.message}>
                     <textarea
-                      className="focus-ring min-h-24 w-full rounded-xl border border-wave-deep/15 px-3 py-3"
+                      className="ui-field min-h-24"
                       {...form.register("internalNotes")}
                     />
                   </Field>
@@ -292,7 +380,7 @@ export function AdminAddAppointmentDialog({ onClose }: { onClose: () => void }) 
               </section>
 
               {selectedService && selectedStylist && selectedSlot && (
-                <section className="rounded-2xl border border-wave-deep/10 p-4 text-sm">
+                <section className="ui-subtle-note text-sm">
                   <p className="font-bold">
                     {t("booking.summary", {
                       service: getLocalizedServiceText(selectedService, language).name,
@@ -355,7 +443,7 @@ function ChoiceButton({
       type="button"
       onClick={onClick}
       className={`focus-ring rounded-2xl border p-4 text-left transition ${
-        selected ? "border-wave-deep bg-wave-mint" : "border-wave-deep/10 bg-white hover:border-wave-deep/40"
+        selected ? "border-wave-deep bg-wave-mint/70" : "border-wave-deep/10 bg-white hover:bg-wave-mint/35"
       }`}
     >
       <span className="flex items-start justify-between gap-3">

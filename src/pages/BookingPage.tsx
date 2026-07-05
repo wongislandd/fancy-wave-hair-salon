@@ -45,6 +45,7 @@ export function BookingPage() {
   const [date, setDate] = useState(nextBookableDates(1)[0]);
   const [slot, setSlot] = useState<AvailableSlot | null>(null);
   const dates = useMemo(() => nextBookableDates(8), []);
+  const currentStepIndex = steps.findIndex((item) => item.id === step);
 
   const { data: services = [], isLoading: servicesLoading } = useQuery({
     queryKey: ["public-services"],
@@ -92,30 +93,43 @@ export function BookingPage() {
         notes: values.notes
       }),
     onSuccess: (confirmation) => {
-      navigate(`/booking-confirmed/${confirmation.managementToken}`);
+      navigate(`/booking-confirmed/${confirmation.managementToken}`, {
+        state: { bookingJustCompleted: true }
+      });
     }
   });
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mb-8">
+    <section className="mx-auto max-w-6xl px-4 pb-32 pt-6 sm:px-6 sm:py-10 lg:px-8">
+      <div className="mb-5 sm:mb-8">
         <p className="text-sm font-semibold uppercase tracking-wide text-wave-deep">{t("booking.eyebrow")}</p>
-        <h1 className="mt-2 text-3xl font-black sm:text-4xl">{t("booking.title")}</h1>
+        <h1 className="mt-2 text-2xl font-black sm:text-4xl">{t("booking.title")}</h1>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside className="rounded-2xl border border-wave-deep/10 bg-white p-5 shadow-sm">
-          {steps.map((item, index) => (
-            <div key={item.id} className="flex items-center gap-3 py-3">
-              <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${step === item.id ? "bg-wave-deep text-white" : "bg-wave-mint text-wave-deep"}`}>
-                {index + 1}
-              </span>
-              <span>{t(item.labelKey)}</span>
-            </div>
-          ))}
+      <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
+        <aside className="ui-surface-compact shadow-sm lg:sticky lg:top-24 lg:self-start">
+          <div className="grid grid-cols-4 gap-2 lg:block">
+            {steps.map((item, index) => {
+              const isCurrent = step === item.id;
+              const isComplete = index < currentStepIndex;
+
+              return (
+                <div
+                  key={item.id}
+                  aria-current={isCurrent ? "step" : undefined}
+                  className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-2 text-center text-[11px] font-semibold leading-tight lg:flex-row lg:gap-3 lg:px-0 lg:py-3 lg:text-left lg:text-base ${isCurrent ? "bg-wave-mint/70 text-wave-ink lg:bg-transparent" : "text-wave-ink/65"}`}
+                >
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${isCurrent ? "bg-wave-deep text-white" : isComplete ? "bg-wave-deep/10 text-wave-deep" : "bg-wave-mint text-wave-deep"}`}>
+                    {isComplete ? <CheckCircle2 size={16} /> : index + 1}
+                  </span>
+                  <span className="min-w-0 truncate">{t(item.labelKey)}</span>
+                </div>
+              );
+            })}
+          </div>
         </aside>
 
-        <div className="min-w-0 rounded-3xl border border-wave-deep/10 bg-white p-5 sm:p-7">
+        <div className="ui-surface min-w-0 pb-28 sm:p-7">
           {step === "service" && (
             <div>
               <h2 className="text-xl font-bold">{t("booking.chooseService")}</h2>
@@ -133,7 +147,7 @@ export function BookingPage() {
                         setStylistId("any");
                         setSlot(null);
                       }}
-                      className={`focus-ring rounded-2xl border p-4 text-left transition ${serviceId === service.id ? "border-wave-deep bg-wave-mint" : "border-wave-deep/10 hover:border-wave-deep/40"}`}
+                      className={`focus-ring rounded-2xl border p-4 text-left transition ${serviceId === service.id ? "border-wave-deep bg-wave-mint/70" : "border-wave-deep/10 bg-white hover:bg-wave-mint/35"}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <h3 className="font-bold">{serviceText.name}</h3>
@@ -211,7 +225,7 @@ export function BookingPage() {
           {step === "details" && selectedService && slot && (
             <form onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
               <h2 className="text-xl font-bold">{t("booking.yourDetails")}</h2>
-              <div className="mt-4 rounded-2xl border border-wave-deep/10 bg-wave-mint/50 p-4 text-sm">
+              <div className="ui-subtle-note mt-4 text-sm">
                 <p className="font-semibold">
                   {t("booking.summary", {
                     service: selectedServiceText?.name ?? selectedService.name,
@@ -227,16 +241,16 @@ export function BookingPage() {
               </div>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <Field label={t("booking.name")} error={form.formState.errors.customerName?.message}>
-                  <input className="focus-ring w-full rounded-xl border border-wave-deep/15 px-3 py-3" {...form.register("customerName")} />
+                  <input className="ui-field" {...form.register("customerName")} />
                 </Field>
                 <Field label={t("booking.email")} error={form.formState.errors.customerEmail?.message}>
-                  <input className="focus-ring w-full rounded-xl border border-wave-deep/15 px-3 py-3" {...form.register("customerEmail")} />
+                  <input className="ui-field" {...form.register("customerEmail")} />
                 </Field>
                 <Field label={t("booking.phone")} error={form.formState.errors.customerPhone?.message}>
-                  <input className="focus-ring w-full rounded-xl border border-wave-deep/15 px-3 py-3" {...form.register("customerPhone")} />
+                  <input className="ui-field" {...form.register("customerPhone")} />
                 </Field>
                 <Field label={t("booking.notes")}>
-                  <textarea className="focus-ring min-h-24 w-full rounded-xl border border-wave-deep/15 px-3 py-3" placeholder={t("booking.notesPlaceholder")} {...form.register("notes")} />
+                  <textarea className="ui-field min-h-24" placeholder={t("booking.notesPlaceholder")} {...form.register("notes")} />
                 </Field>
               </div>
               {mutation.error && <p className="mt-4 rounded-xl bg-wave-deep/10 p-3 text-sm text-wave-deep">{mutation.error.message}</p>}
@@ -266,7 +280,7 @@ function StylistChoice({
     <button
       type="button"
       onClick={onClick}
-      className={`focus-ring rounded-2xl border p-4 text-left transition ${selected ? "border-wave-deep bg-wave-mint" : "border-wave-deep/10 hover:border-wave-deep/40"}`}
+      className={`focus-ring rounded-2xl border p-4 text-left transition ${selected ? "border-wave-deep bg-wave-mint/70" : "border-wave-deep/10 bg-white hover:bg-wave-mint/35"}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -330,7 +344,7 @@ function TimeSelector({
               : t("booking.showingEligible")}
           </p>
         </div>
-        <div className="rounded-2xl bg-wave-mint/70 px-4 py-3 text-sm">
+        <div className="ui-subtle-note text-sm">
           <p className="font-semibold">{selectedServiceText.name}</p>
           <p className="text-wave-ink/65">{selectedService.durationMinutes} {t("common.minutes")}</p>
         </div>
@@ -350,38 +364,40 @@ function TimeSelector({
         ))}
       </div>
 
-      <div className="mt-6 rounded-3xl border border-wave-deep/10 bg-wave-cream/60 p-4">
-        {slotsLoading && <p>{t("booking.checkingCalendars")}</p>}
-        {!slotsLoading && slots.length === 0 && <p>{t("booking.noTimes")}</p>}
-        {!slotsLoading && slots.length > 0 && (
-          <div className="grid gap-5">
-            {Object.entries(groupedSlots).map(([label, dayPartSlots]) => (
-              <section key={label}>
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-wave-deep">
-                  <Clock3 size={16} />
-                  {t(dayPartLabelKey(label))}
-                </h3>
-                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                  {dayPartSlots.map((availableSlot) => (
-                    <button
-                      key={`${availableSlot.stylistId}-${availableSlot.startsAt}`}
-                      type="button"
-                      onClick={() => onSelectSlot(availableSlot)}
-                      className={`focus-ring rounded-2xl border bg-white p-4 text-left transition ${selectedSlot?.startsAt === availableSlot.startsAt && selectedSlot?.stylistId === availableSlot.stylistId ? "border-wave-deep ring-2 ring-wave-deep/20" : "border-wave-deep/10 hover:border-wave-deep/40"}`}
-                    >
-                      <span className="text-lg font-black">{formatSlotTime(availableSlot.startsAt, locale)}</span>
-                      <span className="mt-1 block text-sm text-wave-ink/65">{availableSlot.stylistName}</span>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
+      <div className="ui-section-divider mt-6">
+        <div className="max-h-[44dvh] overflow-y-auto pr-1 [scrollbar-gutter:stable] sm:max-h-none sm:overflow-visible sm:pr-0">
+          {slotsLoading && <p>{t("booking.checkingCalendars")}</p>}
+          {!slotsLoading && slots.length === 0 && <p>{t("booking.noTimes")}</p>}
+          {!slotsLoading && slots.length > 0 && (
+            <div className="grid gap-5">
+              {Object.entries(groupedSlots).map(([label, dayPartSlots]) => (
+                <section key={label}>
+                  <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-wave-deep">
+                    <Clock3 size={16} />
+                    {t(dayPartLabelKey(label))}
+                  </h3>
+                  <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                    {dayPartSlots.map((availableSlot) => (
+                      <button
+                        key={`${availableSlot.stylistId}-${availableSlot.startsAt}`}
+                        type="button"
+                        onClick={() => onSelectSlot(availableSlot)}
+                        className={`focus-ring rounded-2xl border bg-white p-4 text-left transition ${selectedSlot?.startsAt === availableSlot.startsAt && selectedSlot?.stylistId === availableSlot.stylistId ? "border-wave-deep ring-2 ring-wave-deep/20" : "border-wave-deep/10 hover:bg-wave-mint/35"}`}
+                      >
+                        <span className="text-lg font-black">{formatSlotTime(availableSlot.startsAt, locale)}</span>
+                        <span className="mt-1 block text-sm text-wave-ink/65">{availableSlot.stylistName}</span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {selectedSlot && (
-        <div className="mt-5 rounded-2xl border border-wave-deep/10 bg-white p-4 text-sm shadow-sm">
+        <div className="ui-subtle-note mt-5 text-sm">
           <p className="font-bold">{t("booking.selectedAppointment")}</p>
           <p className="mt-1 text-wave-ink/70">
             {t("booking.selectedAppointmentCopy", {
@@ -450,22 +466,24 @@ function FooterNav({
   const { t } = useLanguage();
 
   return (
-    <div className="mt-8 flex justify-between gap-3">
-      {onBack ? (
-        <button type="button" onClick={onBack} className="focus-ring inline-flex items-center gap-2 rounded-full px-4 py-2 font-semibold text-wave-ink/70 hover:bg-wave-mint">
-          <ArrowLeft size={18} />
-          {t("common.back")}
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-wave-deep/10 bg-white/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] shadow-[0_-12px_30px_rgb(43_23_20_/_0.12)] backdrop-blur sm:static sm:mt-8 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none sm:backdrop-blur-none">
+      <div className={`mx-auto flex max-w-6xl items-center gap-3 ${onBack ? "justify-between" : "justify-end"} sm:mx-0 sm:max-w-none`}>
+        {onBack ? (
+          <button type="button" onClick={onBack} className="focus-ring inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full border border-wave-deep/10 bg-white px-4 font-semibold text-wave-ink/70 shadow-sm hover:bg-wave-mint sm:h-auto sm:border-0 sm:bg-transparent sm:py-2 sm:shadow-none">
+            <ArrowLeft size={18} />
+            {t("common.back")}
+          </button>
+        ) : null}
+        <button
+          type={submit ? "submit" : "button"}
+          onClick={submit ? undefined : onNext}
+          disabled={!canContinue}
+          className={`focus-ring inline-flex h-12 items-center justify-center gap-2 rounded-full bg-wave-deep px-5 font-semibold text-white shadow-sm transition hover:bg-wave-ink disabled:cursor-not-allowed disabled:opacity-50 sm:h-auto sm:py-3 ${onBack ? "min-w-0 flex-1 sm:flex-none" : "w-full sm:w-auto"}`}
+        >
+          {label ?? t("common.continue")}
+          <ArrowRight size={18} />
         </button>
-      ) : <span />}
-      <button
-        type={submit ? "submit" : "button"}
-        onClick={submit ? undefined : onNext}
-        disabled={!canContinue}
-        className="focus-ring inline-flex items-center gap-2 rounded-full bg-wave-deep px-5 py-3 font-semibold text-white transition hover:bg-wave-ink disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {label ?? t("common.continue")}
-        <ArrowRight size={18} />
-      </button>
+      </div>
     </div>
   );
 }

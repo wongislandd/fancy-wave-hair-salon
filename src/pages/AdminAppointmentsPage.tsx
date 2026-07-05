@@ -78,7 +78,7 @@ export function AdminAppointmentsPage() {
         <Metric label={t("admin.appointments.metricGuests")} value={customerCount} />
       </div>
 
-      <section className="rounded-3xl border border-wave-deep/10 bg-white p-5 sm:p-6">
+      <section className="ui-surface">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-wave-ink/45" size={18} />
@@ -89,7 +89,7 @@ export function AdminAppointmentsPage() {
               placeholder={t("admin.appointments.search")}
             />
           </div>
-          <div className="flex gap-2 overflow-x-auto rounded-full bg-wave-mint p-1">
+          <div className="ui-segmented overflow-x-auto">
             {statusFilters.map((status) => (
               <button
                 key={status}
@@ -108,7 +108,7 @@ export function AdminAppointmentsPage() {
         <div className="mt-6 space-y-7">
           {appointmentsQuery.isLoading && <p>{t("admin.appointments.loading")}</p>}
           {!appointmentsQuery.isLoading && filteredAppointments.length === 0 && (
-            <p className="rounded-2xl bg-wave-mint/70 p-4 text-sm text-wave-ink/70">
+            <p className="ui-subtle-note">
               {t("admin.appointments.empty")}
             </p>
           )}
@@ -117,13 +117,13 @@ export function AdminAppointmentsPage() {
               <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-wave-deep">
                 {formatDateKeyInTimeZone(day, undefined, undefined, locale)}
               </h2>
-              <div className="space-y-3">
+              <div className="ui-divided-list">
                 {dayAppointments.map((appointment) => (
                   <button
                     key={appointment.id}
                     type="button"
                     onClick={() => setSelectedAppointmentId(appointment.id)}
-                    className="focus-ring block w-full rounded-2xl border border-wave-deep/10 p-4 text-left transition hover:border-wave-deep/35 hover:bg-wave-mint/40"
+                    className="focus-ring block w-full py-4 text-left transition hover:bg-wave-mint/35"
                   >
                     <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_auto] lg:items-start">
                       <div className="min-w-0">
@@ -173,7 +173,7 @@ export function AdminAppointmentsPage() {
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-wave-deep/10 bg-white px-5 py-4 shadow-sm">
+    <div className="ui-surface-compact shadow-sm">
       <p className="text-sm font-semibold uppercase tracking-wide text-wave-deep">{label}</p>
       <p className="mt-2 text-3xl font-black">{value}</p>
     </div>

@@ -29,6 +29,7 @@ export const demoServices: Service[] = [
     name: "Signature Haircut",
     description: "Wash, precision cut, and a soft finish.",
     durationMinutes: 60,
+    calendarBlockMinutes: 60,
     priceCents: 6500,
     isActive: true,
     displayOrder: 1
@@ -42,6 +43,7 @@ export const demoServices: Service[] = [
     name: "Gloss Treatment",
     description: "Tone refresh and shine treatment for luminous color.",
     durationMinutes: 45,
+    calendarBlockMinutes: 45,
     priceCents: 8500,
     isActive: true,
     displayOrder: 2
@@ -55,6 +57,7 @@ export const demoServices: Service[] = [
     name: "Blowout Styling",
     description: "Smooth, voluminous styling for everyday polish.",
     durationMinutes: 45,
+    calendarBlockMinutes: 45,
     priceCents: 5500,
     isActive: true,
     displayOrder: 3
@@ -68,6 +71,7 @@ export const demoServices: Service[] = [
     name: "Full Color",
     description: "All-over color consultation, application, and finish.",
     durationMinutes: 120,
+    calendarBlockMinutes: 120,
     priceCents: 16500,
     isActive: true,
     displayOrder: 4

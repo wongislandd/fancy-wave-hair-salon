@@ -41,6 +41,7 @@ describe("AppLayout", () => {
     renderLayout("/admin/login");
 
     expect(screen.getByText("Fancy Wave Beauty Salon")).toBeTruthy();
+    expect(screen.queryByText("Admin")).toBeNull();
     expect(screen.queryByText("Book an appointment")).toBeNull();
     expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
   });

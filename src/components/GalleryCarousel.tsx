@@ -183,7 +183,7 @@ export function GalleryCarousel({
           {photos.map((photo, index) => (
             <figure
               key={photo.id}
-              className="min-w-[82%] snap-start overflow-hidden rounded-3xl border border-wave-deep/10 bg-white shadow-sm sm:min-w-[360px] lg:min-w-[420px]"
+              className="min-w-[82%] snap-start overflow-hidden rounded-[1.375rem] bg-white sm:min-w-[360px] lg:min-w-[420px]"
             >
               <button
                 type="button"

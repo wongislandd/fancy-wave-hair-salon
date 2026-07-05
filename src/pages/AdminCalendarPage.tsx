@@ -1,10 +1,15 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type PointerEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarPlus, ChevronLeft, ChevronRight } from "lucide-react";
 import { AdminAddAppointmentDialog } from "../components/AdminAddAppointmentDialog";
 import { AdminShell } from "../components/AdminShell";
 import { AppointmentDetailDrawer } from "../components/AppointmentDetailDrawer";
-import { buildCalendarDayLayouts, getCalendarViewDays, moveCalendarAnchor } from "../lib/calendar";
+import {
+  buildCalendarDayLayouts,
+  buildCalendarDraftSelection,
+  getCalendarViewDays,
+  moveCalendarAnchor
+} from "../lib/calendar";
 import {
   DEFAULT_SALON_TIME_ZONE,
   dateKeyInTimeZone,
@@ -18,7 +23,7 @@ import {
   type Language,
   localeForLanguage
 } from "../lib/localization";
-import type { CalendarEventLayout, CalendarViewMode } from "../lib/calendar";
+import type { CalendarDraftSelection, CalendarEventLayout, CalendarViewMode } from "../lib/calendar";
 import type { Appointment } from "../lib/types";
 
 const viewOptions: Array<{ id: CalendarViewMode; labelKey: "admin.calendar.day" | "admin.calendar.threeDay" | "admin.calendar.week" }> = [
@@ -29,7 +34,7 @@ const viewOptions: Array<{ id: CalendarViewMode; labelKey: "admin.calendar.day" 
 
 const startHour = 8;
 const endHour = 20;
-const hourHeight = 92;
+const hourHeight = 136;
 const stylistColors = ["#111827", "#1f2937", "#374151", "#4b5563", "#6b7280"];
 
 export function AdminCalendarPage() {
@@ -39,6 +44,7 @@ export function AdminCalendarPage() {
   const [anchorDate, setAnchorDate] = useState(new Date());
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [isAddAppointmentOpen, setIsAddAppointmentOpen] = useState(false);
+  const [appointmentDraft, setAppointmentDraft] = useState<CalendarDraftSelection | null>(null);
 
   const appointmentsQuery = useQuery({
     queryKey: ["admin-appointments"],
@@ -50,8 +56,11 @@ export function AdminCalendarPage() {
     appointments.find((appointment) => appointment.id === selectedAppointmentId) ?? null;
   const days = useMemo(() => getCalendarViewDays(anchorDate, activeView), [activeView, anchorDate]);
   const stylistColorMap = useMemo(() => buildStylistColorMap(appointments), [appointments]);
-  const timeColumnWidth = activeView === "week" ? "64px" : "76px";
-  const calendarColumns = `${timeColumnWidth} repeat(${days.length}, minmax(0, 1fr))`;
+  const timeColumnWidthPx = activeView === "week" ? 64 : 76;
+  const dayColumnMinWidthPx =
+    activeView === "day" ? 320 : activeView === "threeDay" ? 224 : 168;
+  const calendarColumns = `${timeColumnWidthPx}px repeat(${days.length}, minmax(${dayColumnMinWidthPx}px, 1fr))`;
+  const calendarMinWidth = `${timeColumnWidthPx + days.length * dayColumnMinWidthPx}px`;
   const timeLabels = useMemo(
     () => Array.from({ length: endHour - startHour + 1 }, (_, index) => startHour + index),
     []
@@ -63,7 +72,10 @@ export function AdminCalendarPage() {
       actions={
         <button
           type="button"
-          onClick={() => setIsAddAppointmentOpen(true)}
+          onClick={() => {
+            setAppointmentDraft(null);
+            setIsAddAppointmentOpen(true);
+          }}
           className="focus-ring inline-flex items-center gap-2 rounded-full bg-wave-deep px-4 py-2 font-semibold text-white"
         >
           <CalendarPlus size={18} />
@@ -71,7 +83,7 @@ export function AdminCalendarPage() {
         </button>
       }
     >
-      <section className="rounded-3xl border border-wave-deep/10 bg-white p-4 sm:p-5">
+      <section className="ui-surface-compact">
         <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -100,7 +112,7 @@ export function AdminCalendarPage() {
             <h2 className="ml-1 text-xl font-black">{formatCalendarTitle(days, DEFAULT_SALON_TIME_ZONE, locale)}</h2>
           </div>
 
-          <div className="flex shrink-0 gap-2 rounded-full bg-wave-mint p-1">
+          <div className="ui-segmented shrink-0">
             {viewOptions.map((view) => (
               <button
                 key={view.id}
@@ -117,10 +129,10 @@ export function AdminCalendarPage() {
         </div>
 
         {appointmentsQuery.isLoading ? (
-          <p className="rounded-2xl bg-wave-mint/70 p-4 text-sm text-wave-ink/70">{t("admin.calendar.loading")}</p>
+          <p className="ui-subtle-note">{t("admin.calendar.loading")}</p>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-wave-deep/10 bg-white">
-            <div className="w-full">
+          <div className="overflow-x-auto rounded-2xl border border-wave-deep/10 bg-white">
+            <div className="w-full" style={{ minWidth: calendarMinWidth }}>
               <div
                 className="grid border-b border-wave-deep/10 bg-wave-mint/70"
                 style={{ gridTemplateColumns: calendarColumns }}
@@ -170,6 +182,10 @@ export function AdminCalendarPage() {
                     locale={locale}
                     language={language}
                     showEmptyState={activeView === "day"}
+                    onCreateDraft={(draft) => {
+                      setAppointmentDraft(draft);
+                      setIsAddAppointmentOpen(true);
+                    }}
                   />
                 ))}
               </div>
@@ -184,7 +200,13 @@ export function AdminCalendarPage() {
         onClose={() => setSelectedAppointmentId(null)}
       />
       {isAddAppointmentOpen && (
-        <AdminAddAppointmentDialog onClose={() => setIsAddAppointmentOpen(false)} />
+        <AdminAddAppointmentDialog
+          initialSelection={appointmentDraft ?? undefined}
+          onClose={() => {
+            setIsAddAppointmentOpen(false);
+            setAppointmentDraft(null);
+          }}
+        />
       )}
     </AdminShell>
   );
@@ -198,7 +220,8 @@ function DayColumn({
   timeZone,
   locale,
   language,
-  showEmptyState
+  showEmptyState,
+  onCreateDraft
 }: {
   day: Date;
   appointments: Appointment[];
@@ -208,12 +231,94 @@ function DayColumn({
   locale: string;
   language: Language;
   showEmptyState: boolean;
+  onCreateDraft: (draft: CalendarDraftSelection) => void;
 }) {
   const { t } = useLanguage();
+  const columnRef = useRef<HTMLDivElement | null>(null);
+  const dragStartYRef = useRef<number | null>(null);
+  const dragPointerIdRef = useRef<number | null>(null);
+  const [draftPreview, setDraftPreview] = useState<CalendarDraftSelection | null>(null);
   const layouts = buildCalendarDayLayouts(appointments, day, startHour, endHour, timeZone);
+  const rangeStartMinutes = startHour * 60;
+  const rangeMinutes = (endHour - startHour) * 60;
+  const dragLabel = t("admin.calendar.dragToAdd", {
+    date: formatDateInTimeZone(day, timeZone, {
+      weekday: "long",
+      month: "long",
+      day: "numeric"
+    }, locale)
+  });
+
+  function relativePointerY(event: PointerEvent<HTMLDivElement>): number {
+    const rect = columnRef.current?.getBoundingClientRect();
+    const clientY = Number.isFinite(event.clientY) ? event.clientY : 0;
+    return rect ? clientY - rect.top : 0;
+  }
+
+  function draftFromPointerY(currentPointerY: number): CalendarDraftSelection | null {
+    if (dragStartYRef.current === null) return null;
+
+    return buildCalendarDraftSelection({
+      day,
+      startPointerY: dragStartYRef.current,
+      currentPointerY,
+      hourHeightPx: hourHeight,
+      startHour,
+      endHour,
+      timeZone
+    });
+  }
+
+  function resetDrag() {
+    dragStartYRef.current = null;
+    dragPointerIdRef.current = null;
+    setDraftPreview(null);
+  }
+
+  function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (event.button > 0) return;
+    if ((event.target as HTMLElement).closest("[data-calendar-event='true']")) return;
+
+    dragStartYRef.current = relativePointerY(event);
+    dragPointerIdRef.current = event.pointerId;
+    setDraftPreview(draftFromPointerY(relativePointerY(event)));
+    if (event.currentTarget.setPointerCapture) {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+    event.preventDefault();
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (dragPointerIdRef.current !== event.pointerId) return;
+    setDraftPreview(draftFromPointerY(relativePointerY(event)));
+  }
+
+  function handlePointerUp(event: PointerEvent<HTMLDivElement>) {
+    if (dragPointerIdRef.current !== event.pointerId) return;
+
+    const draft = draftFromPointerY(relativePointerY(event));
+    resetDrag();
+    if (
+      event.currentTarget.hasPointerCapture &&
+      event.currentTarget.releasePointerCapture &&
+      event.currentTarget.hasPointerCapture(event.pointerId)
+    ) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (draft) onCreateDraft(draft);
+  }
 
   return (
-    <div className="relative min-w-0 border-l border-wave-deep/10 bg-white">
+    <div
+      ref={columnRef}
+      className="relative min-w-0 cursor-crosshair select-none border-l border-wave-deep/10 bg-white"
+      title={dragLabel}
+      aria-label={dragLabel}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={resetDrag}
+    >
       {Array.from({ length: endHour - startHour }, (_, index) => (
         <div
           key={index}
@@ -224,6 +329,18 @@ function DayColumn({
       {showEmptyState && layouts.length === 0 && (
         <div className="pointer-events-none absolute left-3 right-3 top-3 rounded-xl border border-dashed border-wave-deep/10 bg-wave-mint/60 p-3 text-center text-xs font-semibold text-wave-ink/60">
           {t("admin.calendar.noAppointments")}
+        </div>
+      )}
+      {draftPreview && (
+        <div
+          className="pointer-events-none absolute left-2 right-2 z-10 rounded-lg border border-wave-deep/35 bg-wave-deep/10 px-2 py-1.5 text-xs font-semibold text-wave-deep shadow-sm"
+          style={{
+            top: `${((draftPreview.startMinutes - rangeStartMinutes) / rangeMinutes) * 100}%`,
+            height: `calc(${(draftPreview.durationMinutes / rangeMinutes) * 100}% - 4px)`
+          }}
+        >
+          <span className="block truncate font-black">{t("admin.calendar.dragPreview")}</span>
+          <span className="block truncate">{formatDraftTimeRange(draftPreview, locale)}</span>
         </div>
       )}
       {layouts.map((layout) => (
@@ -256,12 +373,18 @@ function CalendarEvent({
   const { appointment } = layout;
   const isCancelled = appointment.status === "cancelled";
   const laneWidth = 100 / layout.laneCount;
+  const timeRange = formatTimeRange(appointment, locale);
+  const serviceName = getAppointmentServiceName(appointment, language);
+  const appointmentLabel = `${timeRange}, ${appointment.customerName}, ${serviceName}, ${appointment.stylistNameSnapshot}`;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="focus-ring absolute overflow-hidden rounded-xl border border-white/15 p-2 text-left text-white transition hover:brightness-95"
+      data-calendar-event="true"
+      aria-label={appointmentLabel}
+      title={appointmentLabel}
+      className="focus-ring absolute z-20 flex min-h-0 flex-col gap-px overflow-hidden rounded-lg border border-white/15 px-2 py-1.5 text-left text-white transition hover:brightness-95"
       style={{
         top: `${layout.topPercent}%`,
         height: `calc(${layout.heightPercent}% - 4px)`,
@@ -272,14 +395,16 @@ function CalendarEvent({
         opacity: isCancelled ? 0.78 : 1
       }}
     >
-      <span className="block truncate text-[11px] font-bold leading-tight sm:text-xs">
-        {formatTimeRange(appointment, locale)}
+      <span className="block min-w-0 truncate text-[11px] font-extrabold leading-[1.05]">
+        {timeRange}
       </span>
-      <span className="mt-1 block truncate text-sm font-black leading-tight">{appointment.customerName}</span>
-      <span className="mt-0.5 block truncate text-[11px] leading-tight opacity-90 sm:text-xs">
-        {getAppointmentServiceName(appointment, language)}
+      <span className="block min-w-0 truncate text-[13px] font-black leading-[1.05]">
+        {appointment.customerName}
       </span>
-      <span className="mt-0.5 block truncate text-[11px] leading-tight opacity-90 sm:text-xs">
+      <span className="block min-w-0 truncate text-[11px] leading-[1.05] opacity-90">
+        {serviceName}
+      </span>
+      <span className="block min-w-0 truncate text-[11px] leading-[1.05] opacity-90">
         {appointment.stylistNameSnapshot}
       </span>
     </button>
@@ -349,4 +474,8 @@ function formatHour(hour: number, locale: string): string {
 
 function formatTimeRange(appointment: Appointment, locale: string): string {
   return `${formatTimeInTimeZone(appointment.startsAt, undefined, locale)} - ${formatTimeInTimeZone(appointment.endsAt, undefined, locale)}`;
+}
+
+function formatDraftTimeRange(draft: CalendarDraftSelection, locale: string): string {
+  return `${formatTimeInTimeZone(draft.startsAt, undefined, locale)} - ${formatTimeInTimeZone(draft.endsAt, undefined, locale)}`;
 }
