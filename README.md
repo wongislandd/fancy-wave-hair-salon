@@ -4,6 +4,189 @@ Fancy Wave Hair Salon is a two-sided salon booking app for a Flushing hair salon
 
 This is a strong portfolio/MVP codebase. The stack is sensible, the booking rules have tests, the database uses RLS and token-scoped RPCs, and the UI is polished. Before treating it as production software, read the risk notes below and the deeper handoff doc in [docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md).
 
+## Product Walkthrough
+
+Live staging site: [wongislandd.github.io/fancy-wave-hair-salon](https://wongislandd.github.io/fancy-wave-hair-salon)
+
+Fancy Wave gets one website for both sides of the business: a polished storefront for customers and a private staff workspace for day-to-day salon operations. The public experience helps customers discover the salon, compare services, reserve a time, and manage their appointment without calling. The staff portal gives the shop a single place to manage bookings, service menus, stylist coverage, hours, and gallery photos.
+
+Screenshots below reflect the staging website with staging and sample booking data.
+
+### 1. Storefront
+
+The landing page presents the salon from the first screen: brand, booking call-to-action, bilingual controls, popular services, location details, and gallery photography. A new customer can understand what the salon offers and move straight into booking.
+
+![Fancy Wave landing page](docs/brochure-screenshots-staging/01-landing-page.png)
+
+Storefront capabilities:
+
+- English and Chinese language switcher.
+- Clear book-online action in the header.
+- Service menu with prices and durations.
+- Salon address, contact details, and hours.
+- Gallery photos for atmosphere and finished styles.
+- Responsive layout for desktop and phone visitors.
+
+### 2. Online Reservation Flow
+
+The reservation flow is guided step by step so customers send the shop complete appointment information.
+
+Customers start by picking a service. Each card shows what the service includes, how long it takes, and the price.
+
+![Booking service selection](docs/brochure-screenshots-staging/02-booking-service-selection.png)
+
+Next, customers choose a stylist or let the system show the first available opening across eligible stylists.
+
+![Booking stylist selection](docs/brochure-screenshots-staging/03-booking-stylist-selection.png)
+
+The time picker shows bookable slots based on salon hours, stylist hours, service length, minimum booking notice, and existing appointments.
+
+![Booking time picker](docs/brochure-screenshots-staging/04-booking-time-picker.png)
+
+The details step collects the customer name, email, phone number, and notes for the stylist.
+
+![Booking customer details](docs/brochure-screenshots-staging/05-booking-customer-details.png)
+
+After booking, customers get a confirmation page with the appointment reference, calendar link, and self-service reschedule or cancellation controls.
+
+![Booking confirmation and management](docs/brochure-screenshots-staging/06-booking-confirmation-manage.png)
+
+Reservation capabilities:
+
+- Guided service, stylist, time, and details flow.
+- Stylist-aware availability and automatic calendar blocking.
+- Customer notes for preferences and first-visit details.
+- Confirmation page with booking reference.
+- Tokenized customer management link for rescheduling and cancellation.
+- Email-ready booking confirmation flow.
+
+### 3. Staff And Admin Portal
+
+The admin portal gives staff a private workspace separate from the public website.
+
+Staff access starts at a dedicated sign-in screen.
+
+![Admin login](docs/brochure-screenshots-staging/07-admin-login.png)
+
+The appointment dashboard shows current bookings, customer contact details, service information, status, and quick filters.
+
+![Admin appointments](docs/brochure-screenshots-staging/08-admin-appointments.png)
+
+Opening an appointment reveals the full reservation record, customer notes, contact details, previous visit history, and staff-only notes.
+
+![Admin appointment detail](docs/brochure-screenshots-staging/09-admin-appointment-detail.png)
+
+Staff can add appointments for walk-ins or phone calls, keeping online and offline bookings in the same schedule.
+
+![Admin add appointment](docs/brochure-screenshots-staging/10-admin-add-appointment.png)
+
+The calendar turns appointments into visible blocks, with day, three-day, and week views.
+
+![Admin calendar](docs/brochure-screenshots-staging/11-admin-calendar.png)
+
+The service editor controls the public menu: bilingual names and descriptions, price, customer-facing duration, calendar block length, active status, order, and stylist coverage.
+
+![Admin service management](docs/brochure-screenshots-staging/12-admin-services.png)
+
+The stylist editor manages staff profiles, bios, specialties, assigned services, active status, and stylist-specific hours.
+
+![Admin stylist management](docs/brochure-screenshots-staging/13-admin-stylists.png)
+
+Business hours control the weekly salon schedule and special closures or adjusted days. These rules directly affect customer availability.
+
+![Admin business hours](docs/brochure-screenshots-staging/14-admin-hours.png)
+
+The gallery manager controls homepage photos, ordering, visibility, and bilingual descriptions.
+
+![Admin gallery management](docs/brochure-screenshots-staging/15-admin-gallery.png)
+
+Admin capabilities:
+
+- Private staff sign-in.
+- Appointment dashboard with filters and customer search.
+- Appointment detail drawer with history and notes.
+- Staff-created appointments for phone calls and walk-ins.
+- Day, three-day, and week calendar views.
+- Service menu editor with pricing and scheduling controls.
+- Stylist profile editor with service coverage and hours.
+- Weekly business hours and special exceptions.
+- Homepage gallery photo management.
+
+### 4. Mobile-Friendly Preview
+
+The same customer and staff workflows adapt to a phone-sized layout with touch-friendly controls, stacked forms, horizontal admin navigation, and sticky booking actions.
+
+<table>
+  <thead>
+    <tr>
+      <th>Capability</th>
+      <th>Mobile view</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Storefront landing page</td>
+      <td><img src="docs/brochure-screenshots-mobile/01-landing-page.png" width="170" alt="Mobile landing page"></td>
+    </tr>
+    <tr>
+      <td>Pick a service</td>
+      <td><img src="docs/brochure-screenshots-mobile/02-booking-service-selection.png" width="170" alt="Mobile booking service selection"></td>
+    </tr>
+    <tr>
+      <td>Choose a stylist</td>
+      <td><img src="docs/brochure-screenshots-mobile/03-booking-stylist-selection.png" width="170" alt="Mobile booking stylist selection"></td>
+    </tr>
+    <tr>
+      <td>Select a time</td>
+      <td><img src="docs/brochure-screenshots-mobile/04-booking-time-picker.png" width="170" alt="Mobile booking time picker"></td>
+    </tr>
+    <tr>
+      <td>Enter customer details</td>
+      <td><img src="docs/brochure-screenshots-mobile/05-booking-customer-details.png" width="170" alt="Mobile booking customer details"></td>
+    </tr>
+    <tr>
+      <td>Confirmation and self-service</td>
+      <td><img src="docs/brochure-screenshots-mobile/06-booking-confirmation-manage.png" width="170" alt="Mobile booking confirmation and management"></td>
+    </tr>
+    <tr>
+      <td>Staff sign in</td>
+      <td><img src="docs/brochure-screenshots-mobile/07-admin-login.png" width="170" alt="Mobile admin login"></td>
+    </tr>
+    <tr>
+      <td>Appointment dashboard</td>
+      <td><img src="docs/brochure-screenshots-mobile/08-admin-appointments.png" width="170" alt="Mobile admin appointments"></td>
+    </tr>
+    <tr>
+      <td>Appointment detail</td>
+      <td><img src="docs/brochure-screenshots-mobile/09-admin-appointment-detail.png" width="170" alt="Mobile appointment detail"></td>
+    </tr>
+    <tr>
+      <td>Add appointment</td>
+      <td><img src="docs/brochure-screenshots-mobile/10-admin-add-appointment.png" width="170" alt="Mobile add appointment"></td>
+    </tr>
+    <tr>
+      <td>Calendar with appointments</td>
+      <td><img src="docs/brochure-screenshots-mobile/11-admin-calendar.png" width="170" alt="Mobile admin calendar with appointments"></td>
+    </tr>
+    <tr>
+      <td>Service management</td>
+      <td><img src="docs/brochure-screenshots-mobile/12-admin-services.png" width="170" alt="Mobile service management"></td>
+    </tr>
+    <tr>
+      <td>Stylist management</td>
+      <td><img src="docs/brochure-screenshots-mobile/13-admin-stylists.png" width="170" alt="Mobile stylist management"></td>
+    </tr>
+    <tr>
+      <td>Business hours</td>
+      <td><img src="docs/brochure-screenshots-mobile/14-admin-hours.png" width="170" alt="Mobile business hours"></td>
+    </tr>
+    <tr>
+      <td>Gallery management</td>
+      <td><img src="docs/brochure-screenshots-mobile/15-admin-gallery.png" width="170" alt="Mobile gallery management"></td>
+    </tr>
+  </tbody>
+</table>
+
 ## Quick Start
 
 AI agents and contributors should read [AGENTS.md](AGENTS.md) before choosing an environment. The default development target for AI-assisted work is staging.
