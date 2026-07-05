@@ -4,11 +4,13 @@ Fancy Wave now has a polished customer website and a practical staff workspace i
 
 This brochure walks through the experience a customer and salon team would use every day.
 
+Screenshots were captured from the staging website at https://wongislandd.github.io/fancy-wave-hair-salon using staging data.
+
 ## The Storefront Customers See
 
 The landing page presents the salon clearly from the first screen: brand, booking call-to-action, bilingual controls, service highlights, location details, and gallery photography. It gives new visitors enough confidence to book without calling first.
 
-![Landing page](./brochure-screenshots/01-landing-page.png)
+![Landing page](./brochure-screenshots-staging/01-landing-page.png)
 
 **Customer-facing capabilities**
 
@@ -27,31 +29,31 @@ The booking flow guides customers step by step so the shop receives complete, us
 
 Customers start with the service menu, including price and timing. This reduces back-and-forth about what can be booked online.
 
-![Booking service selection](./brochure-screenshots/02-booking-service-selection.png)
+![Booking service selection](./brochure-screenshots-staging/02-booking-service-selection.png)
 
 ### 2. Choose A Stylist
 
 Customers can select an available stylist, or the salon can present staff based on which services each stylist performs.
 
-![Booking stylist selection](./brochure-screenshots/03-booking-stylist-selection.png)
+![Booking stylist selection](./brochure-screenshots-staging/03-booking-stylist-selection.png)
 
 ### 3. Select Date And Time
 
 The time picker shows available slots based on salon hours, stylist hours, booking notice rules, and existing appointments.
 
-![Booking time picker](./brochure-screenshots/04-booking-time-picker.png)
+![Booking time picker](./brochure-screenshots-staging/04-booking-time-picker.png)
 
 ### 4. Enter Contact Details
 
 The final booking step collects the details staff need: customer name, email, phone number, and appointment notes.
 
-![Booking customer details](./brochure-screenshots/05-booking-customer-details.png)
+![Booking customer details](./brochure-screenshots-staging/05-booking-customer-details.png)
 
 ### 5. Confirmation And Self-Service Management
 
 After booking, the customer receives a confirmation page with appointment details and self-service options. The same managed booking link can support rescheduling or cancellation without staff manually searching for the appointment.
 
-![Booking confirmation and management](./brochure-screenshots/06-booking-confirmation-manage.png)
+![Booking confirmation and management](./brochure-screenshots-staging/06-booking-confirmation-manage.png)
 
 **Reservation capabilities**
 
@@ -71,55 +73,55 @@ The admin portal gives the salon a private workspace for daily scheduling and co
 
 Staff access starts at a dedicated sign-in screen, keeping management tools separate from the public website.
 
-![Admin login](./brochure-screenshots/07-admin-login.png)
+![Admin login](./brochure-screenshots-staging/07-admin-login.png)
 
 ### Appointment Dashboard
 
 The appointment dashboard shows current bookings, customer contact details, service information, appointment status, and fast filters. Staff can quickly understand what is booked and what needs attention.
 
-![Admin appointments](./brochure-screenshots/08-admin-appointments.png)
+![Admin appointments](./brochure-screenshots-staging/08-admin-appointments.png)
 
 ### Appointment Detail View
 
 Opening an appointment shows the full reservation record, including customer notes, contact information, previous visit history, and staff-only notes.
 
-![Admin appointment detail](./brochure-screenshots/09-admin-appointment-detail.png)
+![Admin appointment detail](./brochure-screenshots-staging/09-admin-appointment-detail.png)
 
 ### Add Appointments For Walk-Ins Or Phone Calls
 
 Staff can create appointments directly inside the admin portal. This keeps walk-ins, phone bookings, and online bookings in the same schedule.
 
-![Admin add appointment](./brochure-screenshots/10-admin-add-appointment.png)
+![Admin add appointment](./brochure-screenshots-staging/10-admin-add-appointment.png)
 
 ### Calendar View
 
 The calendar view turns appointments into visible time blocks so staff can understand the day, move through dates, and add appointments from the schedule.
 
-![Admin calendar](./brochure-screenshots/11-admin-calendar.png)
+![Admin calendar](./brochure-screenshots-staging/11-admin-calendar.png)
 
 ### Service Management
 
 The service editor lets the salon update public service names, descriptions, duration, booking block length, pricing, active status, order, and stylist coverage.
 
-![Admin service management](./brochure-screenshots/12-admin-services.png)
+![Admin service management](./brochure-screenshots-staging/12-admin-services.png)
 
 ### Stylist Management
 
 The stylist editor manages staff profiles, bios, specialties, assigned services, active status, and individual stylist hours.
 
-![Admin stylist management](./brochure-screenshots/13-admin-stylists.png)
+![Admin stylist management](./brochure-screenshots-staging/13-admin-stylists.png)
 
 ### Business Hours
 
 The hours screen controls weekly salon hours and special closures or adjusted hours, which directly affect what customers can book.
 
-![Admin business hours](./brochure-screenshots/14-admin-hours.png)
+![Admin business hours](./brochure-screenshots-staging/14-admin-hours.png)
 
 ### Gallery Management
 
 The gallery manager controls the photos shown on the homepage, including image order, visibility, and bilingual descriptions.
 
-![Admin gallery management](./brochure-screenshots/15-admin-gallery.png)
+![Admin gallery management](./brochure-screenshots-staging/15-admin-gallery.png)
 
 **Admin capabilities**
 
