@@ -99,6 +99,11 @@ export function AdminServicesPage() {
       setFormError("");
     }
   });
+  const saveError = saveMutation.error
+    ? saveMutation.error instanceof Error
+      ? saveMutation.error.message
+      : "Service could not be saved."
+    : "";
 
   const handleSave = () => {
     const parsed = serviceFormSchema.safeParse(form);
@@ -107,6 +112,7 @@ export function AdminServicesPage() {
       return;
     }
 
+    setFormError("");
     saveMutation.mutate({ values: parsed.data, id: selectedId || undefined });
   };
 
@@ -309,7 +315,11 @@ export function AdminServicesPage() {
             </label>
           </div>
 
-          {formError && <p className="mt-4 rounded-2xl bg-wave-deep/10 p-3 text-sm text-wave-deep">{formError}</p>}
+          {(formError || saveError) && (
+            <p className="mt-4 rounded-2xl bg-wave-deep/10 p-3 text-sm text-wave-deep">
+              {formError || saveError}
+            </p>
+          )}
 
           <button
             type="button"

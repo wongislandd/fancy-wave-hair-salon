@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LanguageProvider } from "../lib/i18n";
+import { saveService } from "../lib/data";
 import { AdminServicesPage } from "./AdminServicesPage";
 import type { Service, Stylist } from "../lib/types";
 
@@ -98,6 +100,7 @@ function renderAdminServicesPage() {
 describe("AdminServicesPage", () => {
   beforeEach(() => {
     window.localStorage.setItem("fancy-wave-language", "en");
+    vi.mocked(saveService).mockReset();
   });
 
   it("shows exact, bounded range, and plus prices in stylist coverage", async () => {
@@ -107,5 +110,19 @@ describe("AdminServicesPage", () => {
     expect(screen.getAllByText("30 min / $28").length).toBeGreaterThan(0);
     expect(screen.getAllByText("45 min / $28-$60").length).toBeGreaterThan(0);
     expect(screen.getAllByText("120 min / $165+").length).toBeGreaterThan(0);
+  });
+
+  it("shows save failures instead of silently leaving old service prices", async () => {
+    vi.mocked(saveService).mockRejectedValueOnce(
+      new Error("column services.price_max_cents does not exist")
+    );
+    const user = userEvent.setup();
+
+    renderAdminServicesPage();
+
+    await user.click(await screen.findByRole("button", { name: "Men's Haircut 30 min / $28 Active" }));
+    await user.click(screen.getByRole("button", { name: "Save service" }));
+
+    expect(await screen.findByText("column services.price_max_cents does not exist")).toBeTruthy();
   });
 });
