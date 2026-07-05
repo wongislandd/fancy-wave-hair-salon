@@ -108,6 +108,11 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
     }
   });
 
+  const handleCancelAppointment = () => {
+    if (!window.confirm(t("manage.cancelConfirm"))) return;
+    cancelMutation.mutate();
+  };
+
   useEffect(() => {
     if (confettiPlayedRef.current) return;
 
@@ -296,7 +301,7 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
               <button
                 type="button"
                 disabled={!manageable || cancelMutation.isPending}
-                onClick={() => cancelMutation.mutate()}
+                onClick={handleCancelAppointment}
                 className="focus-ring mt-4 inline-flex items-center gap-2 rounded-full border border-wave-deep/25 bg-wave-deep/10 px-5 py-3 font-semibold text-wave-deep disabled:opacity-60"
               >
                 <CalendarX2 size={18} />
