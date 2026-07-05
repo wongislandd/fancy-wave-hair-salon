@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { CalendarPlus, CalendarX2, ChevronDown, RotateCw } from "lucide-react";
+import { CalendarPlus, CalendarX2, CheckCircle2, ChevronDown, RotateCw } from "lucide-react";
 import {
   cancelManagedBooking,
   getAvailableSlots,
@@ -34,6 +34,10 @@ import { salonName } from "../lib/salon";
 const bookingConfettiStoragePrefix = "fancy-wave-booking-confetti";
 const bookingConfettiColors = ["#f97373", "#facc15", "#5eead4", "#60a5fa", "#f472b6"];
 
+type ManageActionConfirmation =
+  | { type: "moved"; startsAt: string; endsAt: string }
+  | { type: "cancelled" };
+
 export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }) {
   const { language, t } = useLanguage();
   const locale = localeForLanguage(language);
@@ -43,6 +47,7 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
   const [date, setDate] = useState(nextBookableDates(1)[0]);
   const [slot, setSlot] = useState<AvailableSlot | null>(null);
   const [calendarMenuOpen, setCalendarMenuOpen] = useState(false);
+  const [actionConfirmation, setActionConfirmation] = useState<ManageActionConfirmation | null>(null);
   const confettiPlayedRef = useRef(false);
   const dates = useMemo(() => nextBookableDates(8), []);
 
@@ -92,9 +97,14 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
   });
 
   const rescheduleMutation = useMutation({
-    mutationFn: () => rescheduleManagedBooking(token, slot!.startsAt),
-    onSuccess: () => {
+    mutationFn: (selectedSlot: AvailableSlot) => rescheduleManagedBooking(token, selectedSlot.startsAt),
+    onSuccess: (_data, selectedSlot) => {
       setSlot(null);
+      setActionConfirmation({
+        type: "moved",
+        startsAt: selectedSlot.startsAt,
+        endsAt: selectedSlot.endsAt
+      });
       queryClient.invalidateQueries({ queryKey: ["managed-booking", token] });
       queryClient.invalidateQueries({ queryKey: ["admin-appointments"] });
     }
@@ -103,10 +113,27 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
   const cancelMutation = useMutation({
     mutationFn: () => cancelManagedBooking(token),
     onSuccess: () => {
+      setActionConfirmation({ type: "cancelled" });
       queryClient.invalidateQueries({ queryKey: ["managed-booking", token] });
       queryClient.invalidateQueries({ queryKey: ["admin-appointments"] });
     }
   });
+
+  const handleCancelAppointment = () => {
+    if (!window.confirm(t("manage.cancelConfirm"))) return;
+    setActionConfirmation(null);
+    cancelMutation.mutate();
+  };
+
+  const handleMoveAppointment = () => {
+    if (!slot) return;
+
+    const moveDate = formatAppointmentRange(slot.startsAt, slot.endsAt, undefined, locale);
+    if (!window.confirm(t("manage.moveConfirm", { date: moveDate }))) return;
+
+    setActionConfirmation(null);
+    rescheduleMutation.mutate(slot);
+  };
 
   useEffect(() => {
     if (confettiPlayedRef.current) return;
@@ -241,6 +268,9 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
 
         <section className="ui-surface">
           <h2 className="text-xl font-bold">{t("manage.changeTitle")}</h2>
+          {actionConfirmation && (
+            <ActionConfirmationBanner confirmation={actionConfirmation} locale={locale} />
+          )}
           <div className="mt-5 grid gap-5">
             <div>
               <h3 className="font-semibold">{t("manage.reschedule")}</h3>
@@ -254,6 +284,7 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
                     onClick={() => {
                       setDate(day);
                       setSlot(null);
+                      setActionConfirmation(null);
                     }}
                     className={`focus-ring rounded-full border px-4 py-2 text-sm font-semibold disabled:opacity-60 ${date === day ? "border-wave-deep bg-wave-deep text-white" : "border-wave-deep/10"}`}
                   >
@@ -267,7 +298,10 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
                     key={`${availableSlot.stylistId}-${availableSlot.startsAt}`}
                     type="button"
                     disabled={!manageable}
-                    onClick={() => setSlot(availableSlot)}
+                    onClick={() => {
+                      setSlot(availableSlot);
+                      setActionConfirmation(null);
+                    }}
                     className={`focus-ring rounded-xl border px-4 py-3 font-semibold disabled:opacity-60 ${slot?.startsAt === availableSlot.startsAt ? "border-wave-deep bg-wave-mint/70" : "border-wave-deep/10 hover:bg-wave-mint/35"}`}
                   >
                     {formatTimeInTimeZone(availableSlot.startsAt, undefined, locale)}
@@ -282,7 +316,7 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
               <button
                 type="button"
                 disabled={!manageable || !slot || rescheduleMutation.isPending}
-                onClick={() => rescheduleMutation.mutate()}
+                onClick={handleMoveAppointment}
                 className="focus-ring mt-4 inline-flex items-center gap-2 rounded-full bg-wave-deep px-5 py-3 font-semibold text-white disabled:opacity-60"
               >
                 <RotateCw size={18} />
@@ -296,7 +330,7 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
               <button
                 type="button"
                 disabled={!manageable || cancelMutation.isPending}
-                onClick={() => cancelMutation.mutate()}
+                onClick={handleCancelAppointment}
                 className="focus-ring mt-4 inline-flex items-center gap-2 rounded-full border border-wave-deep/25 bg-wave-deep/10 px-5 py-3 font-semibold text-wave-deep disabled:opacity-60"
               >
                 <CalendarX2 size={18} />
@@ -307,6 +341,38 @@ export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }
         </section>
       </div>
     </PageShell>
+  );
+}
+
+function ActionConfirmationBanner({
+  confirmation,
+  locale
+}: {
+  confirmation: ManageActionConfirmation;
+  locale: string;
+}) {
+  const { t } = useLanguage();
+  const title = confirmation.type === "moved"
+    ? t("manage.moveSuccessTitle")
+    : t("manage.cancelSuccessTitle");
+  const copy = confirmation.type === "moved"
+    ? t("manage.moveSuccessCopy", {
+        date: formatAppointmentRange(confirmation.startsAt, confirmation.endsAt, undefined, locale)
+      })
+    : t("manage.cancelSuccessCopy");
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="mt-4 flex gap-3 rounded-2xl border border-wave-deep/10 bg-wave-mint/70 p-4 text-sm"
+    >
+      <CheckCircle2 className="mt-0.5 shrink-0 text-wave-deep" size={18} />
+      <div>
+        <p className="font-bold text-wave-ink">{title}</p>
+        <p className="mt-1 font-medium text-wave-ink/75">{copy}</p>
+      </div>
+    </div>
   );
 }
 

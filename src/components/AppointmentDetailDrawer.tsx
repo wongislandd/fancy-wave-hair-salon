@@ -105,6 +105,10 @@ export function AppointmentDetailDrawer({
   const phoneDigits = customerPhone.replace(/\D/g, "");
   const hasNoteChanges = notes.trim() !== (appointment.internalNotes ?? "").trim();
   const movePanelId = `move-appointment-panel-${appointment.id}`;
+  const handleCancelAppointment = () => {
+    if (!window.confirm(t("drawer.cancelConfirm", { name: appointment.customerName }))) return;
+    cancelMutation.mutate();
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-wave-ink/35 backdrop-blur-sm">
@@ -349,7 +353,7 @@ export function AppointmentDetailDrawer({
             <button
               type="button"
               disabled={cancelMutation.isPending}
-              onClick={() => cancelMutation.mutate()}
+              onClick={handleCancelAppointment}
               className="focus-ring inline-flex items-center gap-2 rounded-full border border-wave-deep/25 bg-wave-deep/10 px-4 py-2 font-semibold text-wave-deep disabled:opacity-45"
             >
               <CalendarX2 size={16} />

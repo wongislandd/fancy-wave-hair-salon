@@ -5,8 +5,9 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LanguageProvider } from "../lib/i18n";
+import { cancelManagedBooking, getAvailableSlots, rescheduleManagedBooking } from "../lib/data";
 import { ManageBookingPage } from "./ManageBookingPage";
-import type { ManageableBooking } from "../lib/types";
+import type { AvailableSlot, ManageableBooking } from "../lib/types";
 
 const confettiMock = vi.hoisted(() => vi.fn());
 
@@ -70,9 +71,12 @@ function renderConfirmedBooking({
 
 describe("ManageBookingPage", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     window.localStorage.setItem("fancy-wave-language", "en");
     window.sessionStorage.clear();
-    confettiMock.mockClear();
+    vi.mocked(cancelManagedBooking).mockResolvedValue(undefined);
+    vi.mocked(getAvailableSlots).mockResolvedValue([]);
+    vi.mocked(rescheduleManagedBooking).mockResolvedValue(undefined);
   });
 
   it("shows confetti after a freshly completed booking", async () => {
@@ -130,5 +134,91 @@ describe("ManageBookingPage", () => {
     expect(ics).toContain("DTSTART:20260707T140000Z");
     expect(ics).toContain("DTEND:20260707T144500Z");
     expect(ics).toContain("Booking reference: FW-123456");
+  });
+
+  it("asks for confirmation before cancelling a managed booking", async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValueOnce(false);
+    renderConfirmedBooking({ token: "cancel-token" });
+
+    const cancelButton = await screen.findByRole("button", {
+      name: "Cancel appointment"
+    });
+    await user.click(cancelButton);
+
+    expect(confirmSpy).toHaveBeenCalledWith("Cancel this appointment? This cannot be undone.");
+    expect(cancelManagedBooking).not.toHaveBeenCalled();
+
+    confirmSpy.mockRestore();
+  });
+
+  it("asks for confirmation before moving a managed booking", async () => {
+    const newSlot: AvailableSlot = {
+      startsAt: "2026-07-06T13:00:00.000Z",
+      endsAt: "2026-07-06T13:45:00.000Z",
+      label: "9:00 AM",
+      stylistId: "stylist-1",
+      stylistName: "Nina Park"
+    };
+    vi.mocked(getAvailableSlots).mockResolvedValueOnce([newSlot]);
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValueOnce(false);
+    renderConfirmedBooking({ token: "move-confirm-token" });
+
+    await user.click(await screen.findByRole("button", { name: "9:00 AM" }));
+    await user.click(screen.getByRole("button", { name: "Move appointment" }));
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      "Move this appointment to Mon, Jul 6 at 9:00 AM - 9:45 AM?"
+    );
+    expect(rescheduleManagedBooking).not.toHaveBeenCalled();
+
+    confirmSpy.mockRestore();
+  });
+
+  it("shows confirmation after moving a managed booking", async () => {
+    const newSlot: AvailableSlot = {
+      startsAt: "2026-07-06T13:00:00.000Z",
+      endsAt: "2026-07-06T13:45:00.000Z",
+      label: "9:00 AM",
+      stylistId: "stylist-1",
+      stylistName: "Nina Park"
+    };
+    vi.mocked(getAvailableSlots).mockResolvedValueOnce([newSlot]);
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValueOnce(true);
+    renderConfirmedBooking({ token: "move-token" });
+
+    await user.click(await screen.findByRole("button", { name: "9:00 AM" }));
+    await user.click(screen.getByRole("button", { name: "Move appointment" }));
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      "Move this appointment to Mon, Jul 6 at 9:00 AM - 9:45 AM?"
+    );
+    await waitFor(() =>
+      expect(rescheduleManagedBooking).toHaveBeenCalledWith("move-token", newSlot.startsAt)
+    );
+    const confirmation = await screen.findByRole("status");
+    expect(confirmation.textContent).toContain("Appointment moved");
+    expect(confirmation.textContent).toContain("Mon, Jul 6 at 9:00 AM - 9:45 AM");
+
+    confirmSpy.mockRestore();
+  });
+
+  it("shows confirmation after cancelling a managed booking", async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValueOnce(true);
+    renderConfirmedBooking({ token: "cancel-success-token" });
+
+    await user.click(await screen.findByRole("button", {
+      name: "Cancel appointment"
+    }));
+
+    await waitFor(() =>
+      expect(cancelManagedBooking).toHaveBeenCalledWith("cancel-success-token")
+    );
+    expect((await screen.findByRole("status")).textContent).toContain("Appointment cancelled");
+
+    confirmSpy.mockRestore();
   });
 });
