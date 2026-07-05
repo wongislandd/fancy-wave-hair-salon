@@ -25,6 +25,7 @@ describe("booking API RPC wrappers", () => {
       { rpc },
       {
         serviceId: "service-1",
+        stylistId: "stylist-1",
         startsAt: "2026-07-06T14:00:00.000Z",
         customerName: "Maya Chen",
         customerEmail: "maya@example.com",
@@ -35,6 +36,7 @@ describe("booking API RPC wrappers", () => {
 
     expect(rpc).toHaveBeenCalledWith("create_appointment", {
       p_service_id: "service-1",
+      p_stylist_id: "stylist-1",
       p_starts_at: "2026-07-06T14:00:00.000Z",
       p_customer_name: "Maya Chen",
       p_customer_email: "maya@example.com",
@@ -50,11 +52,18 @@ describe("booking API RPC wrappers", () => {
       data: [
         {
           booking_reference: "FW-123ABC",
+          service_id: "service-1",
           service_name: "Signature Haircut",
+          service_name_zh: "招牌剪发",
           service_duration_minutes: 60,
           service_price_cents: 6500,
           customer_name: "Maya Chen",
           customer_email: "maya@example.com",
+          customer_phone: "212-555-0101",
+          stylist_id: "stylist-1",
+          stylist_name: "Nina Park",
+          notes: "Soft layers.",
+          can_manage_online: false,
           starts_at: "2026-07-06T14:00:00.000Z",
           ends_at: "2026-07-06T15:00:00.000Z",
           status: "confirmed"
@@ -69,6 +78,11 @@ describe("booking API RPC wrappers", () => {
       p_token: "secret-token"
     });
     expect(booking?.bookingReference).toBe("FW-123ABC");
+    expect(booking?.serviceNameZh).toBe("招牌剪发");
+    expect(booking?.stylistName).toBe("Nina Park");
+    expect(booking?.customerPhone).toBe("212-555-0101");
+    expect(booking?.notes).toBe("Soft layers.");
+    expect(booking?.canManageOnline).toBe(false);
   });
 
   it("reschedules and cancels through token-scoped RPC calls", async () => {

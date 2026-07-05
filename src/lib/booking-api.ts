@@ -17,6 +17,7 @@ export async function createAppointment(
 ): Promise<AppointmentConfirmation> {
   const { data, error } = await client.rpc("create_appointment", {
     p_service_id: request.serviceId,
+    p_stylist_id: request.stylistId,
     p_starts_at: request.startsAt,
     p_customer_name: request.customerName,
     p_customer_email: request.customerEmail,
@@ -51,7 +52,7 @@ export async function getBookingByToken(
     throw new Error(error.message);
   }
 
-  const row = firstRow(data) as Record<string, string | number> | null;
+  const row = firstRow(data) as Record<string, unknown> | null;
 
   if (!row) {
     return null;
@@ -61,13 +62,19 @@ export async function getBookingByToken(
     bookingReference: String(row.booking_reference),
     serviceId: String(row.service_id),
     serviceName: String(row.service_name),
+    serviceNameZh: row.service_name_zh ? String(row.service_name_zh) : null,
     serviceDurationMinutes: Number(row.service_duration_minutes),
     servicePriceCents: Number(row.service_price_cents),
     customerName: String(row.customer_name),
     customerEmail: String(row.customer_email),
+    customerPhone: String(row.customer_phone),
+    stylistId: String(row.stylist_id),
+    stylistName: String(row.stylist_name),
+    notes: row.notes ? String(row.notes) : null,
     startsAt: String(row.starts_at),
     endsAt: String(row.ends_at),
-    status: row.status as ManageableBooking["status"]
+    status: row.status as ManageableBooking["status"],
+    canManageOnline: Boolean(row.can_manage_online)
   };
 }
 

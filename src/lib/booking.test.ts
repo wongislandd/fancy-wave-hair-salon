@@ -4,6 +4,7 @@ import {
   buildManageBookingPath,
   calculateAppointmentEnd,
   deriveAvailableSlots,
+  formatAppointmentRange,
   isCustomerManageableStatus
 } from "./booking";
 import type { Appointment, BusinessHour, Service } from "./types";
@@ -39,6 +40,16 @@ describe("booking domain helpers", () => {
     expect(end.toISOString()).toBe("2026-07-06T15:45:00.000Z");
   });
 
+  it("formats appointment ranges in the salon time zone", () => {
+    expect(
+      formatAppointmentRange(
+        "2026-07-06T01:30:00.000Z",
+        "2026-07-06T02:30:00.000Z",
+        "Asia/Tokyo"
+      )
+    ).toBe("Mon, Jul 6 at 10:30 AM - 11:30 AM");
+  });
+
   it("marks only future confirmed appointments as customer-manageable", () => {
     expect(isCustomerManageableStatus("confirmed")).toBe(true);
     expect(isCustomerManageableStatus("cancelled")).toBe(false);
@@ -55,11 +66,13 @@ describe("booking domain helpers", () => {
         serviceDurationMinutesSnapshot: haircut.durationMinutes,
         servicePriceCentsSnapshot: haircut.priceCents,
         customerName: "Jamie Rivera",
-        customerEmail: "jamie@example.com",
-        customerPhone: "555-0100",
-        startsAt: "2026-07-06T14:00:00.000Z",
-        endsAt: "2026-07-06T15:00:00.000Z",
-        status: "confirmed",
+      customerEmail: "jamie@example.com",
+      customerPhone: "555-0100",
+      stylistId: "stylist-1",
+      stylistNameSnapshot: "Nina Park",
+      startsAt: "2026-07-06T14:00:00.000Z",
+      endsAt: "2026-07-06T15:00:00.000Z",
+      status: "confirmed",
         createdAt: "2026-07-01T12:00:00.000Z",
         updatedAt: "2026-07-01T12:00:00.000Z"
       }
@@ -72,6 +85,8 @@ describe("booking domain helpers", () => {
       existingAppointments,
       salonTimeZone: "UTC",
       slotIntervalMinutes: 30,
+      stylistId: "stylist-1",
+      stylistName: "Nina Park",
       now: new Date("2026-07-05T12:00:00.000Z")
     });
 
@@ -89,6 +104,74 @@ describe("booking domain helpers", () => {
       "2026-07-06T15:30:00.000Z",
       "2026-07-06T16:00:00.000Z"
     ]);
+  });
+
+  it("blocks overlapping slots only for the selected stylist", () => {
+    const existingAppointments: Appointment[] = [
+      {
+        id: "appt-1",
+        bookingReference: "FW-ABC123",
+        serviceId: haircut.id,
+        serviceNameSnapshot: haircut.name,
+        serviceDurationMinutesSnapshot: haircut.durationMinutes,
+        servicePriceCentsSnapshot: haircut.priceCents,
+        customerName: "Jamie Rivera",
+        customerEmail: "jamie@example.com",
+        customerPhone: "555-0100",
+        stylistId: "stylist-1",
+        stylistNameSnapshot: "Nina Park",
+        startsAt: "2026-07-06T14:00:00.000Z",
+        endsAt: "2026-07-06T15:00:00.000Z",
+        status: "confirmed",
+        createdAt: "2026-07-01T12:00:00.000Z",
+        updatedAt: "2026-07-01T12:00:00.000Z"
+      }
+    ];
+
+    const ninaSlots = deriveAvailableSlots({
+      date: "2026-07-06",
+      service: haircut,
+      businessHours: mondayHours,
+      existingAppointments,
+      salonTimeZone: "UTC",
+      slotIntervalMinutes: 30,
+      stylistId: "stylist-1",
+      now: new Date("2026-07-05T12:00:00.000Z")
+    });
+
+    const theoSlots = deriveAvailableSlots({
+      date: "2026-07-06",
+      service: haircut,
+      businessHours: mondayHours,
+      existingAppointments,
+      salonTimeZone: "UTC",
+      slotIntervalMinutes: 30,
+      stylistId: "stylist-2",
+      now: new Date("2026-07-05T12:00:00.000Z")
+    });
+
+    expect(ninaSlots.map((slot) => slot.startsAt)).not.toContain("2026-07-06T14:00:00.000Z");
+    expect(theoSlots.map((slot) => slot.startsAt)).toContain("2026-07-06T14:00:00.000Z");
+  });
+
+  it("derives demo slots from the configured salon time zone", () => {
+    const slots = deriveAvailableSlots({
+      date: "2026-07-06",
+      service: haircut,
+      businessHours: mondayHours,
+      existingAppointments: [],
+      salonTimeZone: "America/New_York",
+      slotIntervalMinutes: 30,
+      stylistId: "stylist-1",
+      stylistName: "Nina Park",
+      now: new Date("2026-07-05T12:00:00.000Z")
+    });
+
+    expect(slots[0]).toMatchObject({
+      startsAt: "2026-07-06T13:00:00.000Z",
+      label: "9:00 AM"
+    });
+    expect(slots.at(-1)?.startsAt).toBe("2026-07-06T20:00:00.000Z");
   });
 
   it("validates customer booking details", () => {

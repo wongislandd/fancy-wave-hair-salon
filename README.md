@@ -1,16 +1,8 @@
 # Fancy Wave Hair Salon
 
-A résumé-ready starter project for a two-sided salon booking app. Customers can book as guests and manage their reservation from a magic link. Staff can sign in, review the agenda, cancel appointments, edit services, and update business hours.
+Fancy Wave Hair Salon is a two-sided salon booking app for a Flushing hair salon. Customers can view services, switch between English and Chinese, choose a stylist or the first available stylist, book a time, and manage the booking from a tokenized link. Staff can sign in, review appointments, use a day/3-day/week calendar, add appointments, cancel bookings, edit services, manage stylists, set business hours, set stylist-specific hours, and manage gallery photos.
 
-## Stack
-
-- Vite + React + TypeScript
-- Tailwind CSS
-- Supabase Auth, Postgres, RLS, and RPC functions
-- TanStack Query, React Hook Form, Zod, date-fns, lucide-react
-- Cloudflare Pages deployment target
-
-The app runs in **demo data mode** when Supabase env vars are missing, which is useful while you are capped on Supabase projects. Once a local or hosted Supabase project is available, set the env vars and the same UI will use Supabase.
+This is a strong portfolio/MVP codebase. The stack is sensible, the booking rules have tests, the database uses RLS and token-scoped RPCs, and the UI is polished. Before treating it as production software, read the risk notes below and the deeper handoff doc in [docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md).
 
 ## Quick Start
 
@@ -21,12 +13,134 @@ npm run dev
 
 Open `http://localhost:5173`.
 
-Demo staff login when Supabase is not configured:
+On Windows PowerShell, execution policy may block `npm.ps1`. Use `npm.cmd` if that happens:
+
+```powershell
+npm.cmd run dev
+```
+
+## Runtime Modes
+
+The app has two data modes behind the same UI:
+
+- **Demo data mode**: used when Supabase env vars are missing or still contain the placeholder key. Data is stored in memory in `src/lib/demo-data.ts`.
+- **Supabase mode**: used when `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are set in `.env`.
+
+Staff admin access requires Supabase Auth. Create a real Supabase Auth user and add a matching row in `staff_profiles`.
+
+## Scripts
+
+```bash
+npm test -- --run
+npm run lint
+npm run build
+npm audit --omit=dev
+```
+
+Current verification result from the handoff review:
+
+- `npm.cmd test -- --run`: 66 tests passed across 17 files.
+- `npm.cmd run lint`: passed.
+- `npm.cmd run build`: passed. Vite warns that the main JS chunk is larger than 500 kB.
+- `npm.cmd audit --omit=dev`: found 0 production vulnerabilities.
+
+The test run also emits React Router v7 future-flag warnings. They are not failures, but they should be handled during a React Router upgrade.
+
+## Stack
+
+- Vite, React 18, TypeScript, React Router
+- Tailwind CSS with a small custom brand theme
+- TanStack Query for async state and cache invalidation
+- React Hook Form plus Zod for form validation
+- Supabase Auth, Postgres, Row Level Security, Storage, and RPC functions
+- date-fns and browser `Intl` APIs for calendar/time-zone formatting
+- lucide-react icons
+- Vitest and Testing Library
+- Cloudflare Pages deployment target
+
+## App Routes
 
 ```text
-staff@fancywave.test
-demo1234
+/                         Public landing page
+/book                     Customer booking flow
+/booking-confirmed/:token Booking management page in confirmed state
+/manage-booking/:token    Customer reschedule/cancel page
+/admin/login              Staff login
+/admin                    Staff appointment list
+/admin/calendar           Staff calendar
+/admin/services           Service editor
+/admin/stylists           Stylist editor and stylist hours
+/admin/hours              Salon business hours
+/admin/gallery            Gallery photo manager
 ```
+
+## Project Map
+
+```text
+src/App.tsx                         Route table
+src/main.tsx                        React root, QueryClient, language provider
+src/styles.css                      Tailwind entry and shared CSS utilities
+src/components/AppLayout.tsx        Global header, language switcher, booking/sign-out action
+src/components/AdminShell.tsx       Admin page guard and admin navigation
+src/components/AdminAddAppointmentDialog.tsx
+src/components/AppointmentDetailDrawer.tsx
+src/components/GalleryCarousel.tsx
+src/pages/*                         Public and admin screens
+src/lib/data.ts                     Main data facade for demo and Supabase backends
+src/lib/booking.ts                  Booking/time-zone/availability utilities
+src/lib/admin.ts                    Admin form schemas and appointment helpers
+src/lib/calendar.ts                 Calendar layout utilities
+src/lib/i18n.tsx                    Translation catalog and language provider
+src/lib/localization.ts             Localized service/booking helpers
+src/lib/*-api.ts                    Thin wrappers around Supabase RPCs
+src/lib/types.ts                    Shared TypeScript domain types
+supabase/migrations                 Database schema, RLS, RPCs, storage policies
+supabase/seed.sql                   Local demo seed data for Supabase
+public/assets/salon-hero.png        Main salon image used by landing and demo gallery
+```
+
+## Architecture
+
+```mermaid
+flowchart TD
+  Browser["React app"] --> Router["React Router routes"]
+  Router --> Public["Public booking and manage-booking pages"]
+  Router --> Admin["Admin pages"]
+  Public --> Query["TanStack Query"]
+  Admin --> Query
+  Query --> DataFacade["src/lib/data.ts"]
+  DataFacade --> Demo["In-memory demo arrays"]
+  DataFacade --> Supabase["Supabase client"]
+  Supabase --> Tables["Postgres tables with RLS"]
+  Supabase --> RPC["Booking and staff RPC functions"]
+  Supabase --> Storage["gallery-photos storage bucket"]
+```
+
+The important design choice is `src/lib/data.ts`: pages call one facade and do not care whether the backend is demo data or Supabase. That makes the app easy to demo, but it also means every booking rule or admin mutation must stay consistent in two places: TypeScript demo logic and Postgres RPC/table logic.
+
+## Booking Model
+
+Booking availability is built from:
+
+- service duration
+- salon business hours
+- optional stylist-specific hours
+- active stylist/service assignment
+- existing confirmed appointments
+- minimum booking notice
+- cancellation/reschedule cutoff
+
+For Supabase, the authoritative booking operations are RPCs:
+
+- `get_available_slots`
+- `create_appointment`
+- `get_booking_by_token`
+- `reschedule_booking_by_token`
+- `cancel_booking_by_token`
+- `create_staff_appointment`
+- `save_stylist_profile`
+
+Public customers should not query or mutate `appointments` directly. Customer management uses long random tokens. The raw token appears in the customer URL, but only `management_token_hash` is stored in Postgres.
 
 ## Supabase Setup
 
@@ -36,50 +150,76 @@ Copy the env template:
 cp .env.example .env
 ```
 
-For local Supabase:
+Start local Supabase and reset the database:
 
 ```bash
 supabase start
 supabase db reset
 ```
 
-Then create a staff user in Supabase Studio Auth and add a matching staff profile:
+Create a staff Auth user in Supabase Studio, then add a matching staff profile:
 
 ```sql
 insert into public.staff_profiles (user_id, display_name, role)
 values ('<auth-user-id>', 'Demo Staff', 'manager');
 ```
 
-Use the local API URL and publishable key in `.env`.
+Set these values in `.env`:
+
+```text
+VITE_SUPABASE_URL=http://127.0.0.1:54321
+VITE_SUPABASE_PUBLISHABLE_KEY=<local-or-hosted-publishable-key>
+```
+
+Never commit `.env`.
 
 ## Database Model
 
 Main tables:
 
-- `services`: editable service catalog with price, duration, and active flag.
-- `business_hours`: weekly schedule used for availability.
-- `appointments`: guest booking records with service snapshots and token hash.
+- `salon_settings`: salon name, time zone, slot interval, booking notice, cancellation cutoff.
+- `services`: bilingual service catalog with price, duration, active flag, and display order.
+- `stylists`: bookable staff profiles.
+- `stylist_services`: many-to-many mapping from stylists to services.
+- `business_hours`: weekly salon schedule.
+- `stylist_hours`: optional stylist overrides that fall back to salon hours.
+- `appointments`: booking records with service/stylist snapshots, notes, status, and token hash.
 - `email_logs`: simulated confirmation/reschedule/cancel email records.
 - `appointment_events`: audit trail for booking lifecycle actions.
-- `staff_profiles`: staff role records tied to `auth.users`.
+- `staff_profiles`: staff role rows tied to `auth.users`.
+- `gallery_photos`: metadata for public gallery images stored in Supabase Storage.
 
-Public customers do not directly read or update `appointments`. They use token-scoped RPCs:
+The schema also defines:
 
-- `create_appointment`
-- `get_available_slots`
-- `get_booking_by_token`
-- `reschedule_booking_by_token`
-- `cancel_booking_by_token`
+- RLS on every app table.
+- Public read access for active catalog/hours/gallery records.
+- Staff-only mutation policies.
+- An exclusion constraint to prevent overlapping confirmed appointments for the same stylist.
+- A public `gallery-photos` storage bucket with staff-only object mutation policies.
 
-## Customer Management Links
+## Design Assessment
 
-Confirmation emails/logs include:
+Overall verdict: good, especially for a new grad handoff, portfolio demo, or small internal MVP. The app has clear product scope, a coherent visual system, tested booking rules, a real database model, and security-aware public booking flows.
 
-```text
-/manage-booking/<long-random-token>
-```
+Main strengths:
 
-The raw token is only shown to the customer. The database stores `management_token_hash`, so internal appointment IDs are not used as authorization secrets.
+- The public booking path is easy to understand and visually polished.
+- The admin surface covers the core salon operations instead of stopping at booking creation.
+- Time-zone and slot-overlap logic are isolated in `src/lib/booking.ts` and covered by tests.
+- Supabase RLS/RPC design avoids exposing customer appointment rows directly.
+- Demo mode makes local development and portfolio review easy.
+- Bilingual content is supported across public and admin surfaces.
+
+Main handoff risks:
+
+- `src/lib/data.ts` is over 1,000 lines and mixes demo storage, Supabase queries, RPC wrappers, gallery storage, admin mutations, and row mappers.
+- Booking rules exist both in TypeScript demo logic and Postgres RPCs. Keep them synchronized.
+- Several page components are large, especially booking, stylists, gallery, calendar, and add-appointment dialog.
+- There are good unit/component tests, but no end-to-end test that books, reschedules, cancels, and verifies admin state.
+- The production build is currently one large app chunk. Route-level code splitting would lighten the public path.
+- `AppLayout` shows a sign-out button on `/admin/login` because that route starts with `/admin`.
+- The app defaults to Chinese, but `index.html` is static `lang="en"` and the language provider does not update the document language.
+- If salon settings become editable, the frontend should stop assuming the demo `America/New_York` settings in helper functions.
 
 ## Cloudflare Pages
 
@@ -102,21 +242,21 @@ VITE_SUPABASE_URL
 VITE_SUPABASE_PUBLISHABLE_KEY
 ```
 
-## Verification
+Because this is a single-page app, configure fallback routing to serve `index.html` for nested paths like `/book` and `/manage-booking/:token`.
 
-```bash
-npm test -- --run
-npm run build
-npm audit --omit=dev
-```
+## Recommended Next Work
 
-At the time this starter was created, production dependencies report zero audit vulnerabilities. `npm audit` still reports dev-only findings through the Vite/Vitest/esbuild toolchain with no direct fix available from npm.
+1. Split `src/lib/data.ts` into smaller modules: public catalog, appointments, admin, gallery, mappers, and demo repository.
+2. Add one Playwright or Cypress happy-path test for booking, rescheduling, cancellation, and staff visibility.
+3. Fix admin login polish so the global header does not show `Sign out` on `/admin/login`.
+4. Update document language when the app language changes.
+5. Add route-level lazy loading for admin screens and the gallery/admin-heavy surfaces.
+6. Add real email delivery through a Supabase Edge Function and a provider such as Resend.
+7. Add holiday closures, PTO, and one-off blocked time.
+8. Add customer lookup by booking reference plus email.
+9. Add revenue/popular-service dashboard cards.
+10. Consider Stripe deposits if no-shows matter.
 
-## Stretch Ideas
+## Deep Handoff Doc
 
-- Real email delivery with a Supabase Edge Function and Resend.
-- Holiday closures and one-off blocked time.
-- Customer lookup by booking reference plus email.
-- Stylist-specific calendars.
-- Revenue and popular-service dashboard cards.
-- Stripe deposits.
+Read [docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md) before making substantial changes. It explains the architecture, data flows, common change paths, verification commands, and design risks in more detail.

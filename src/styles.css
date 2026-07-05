@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  color: #21312d;
-  background: #fffaf6;
+  color: #2b1714;
+  background: #fff8e6;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -26,4 +26,107 @@ select {
 
 .focus-ring {
   @apply outline-none ring-offset-2 ring-offset-wave-cream focus-visible:ring-2 focus-visible:ring-wave-deep;
+}
+
+.admin-theme .focus-ring {
+  --tw-ring-offset-color: #f9fafb;
+}
+
+.admin-theme .focus-ring:focus-visible {
+  --tw-ring-color: #111827;
+}
+
+.admin-theme .bg-wave-cream,
+.admin-theme .bg-wave-cream\/45,
+.admin-theme .bg-wave-cream\/60 {
+  background-color: #f9fafb;
+}
+
+.admin-theme .bg-wave-mint,
+.admin-theme .bg-wave-mint\/45,
+.admin-theme .bg-wave-mint\/50,
+.admin-theme .bg-wave-mint\/55,
+.admin-theme .bg-wave-mint\/60,
+.admin-theme .bg-wave-mint\/70,
+.admin-theme .hover\:bg-wave-mint:hover,
+.admin-theme .hover\:bg-wave-mint\/40:hover {
+  background-color: #f3f4f6;
+}
+
+.admin-theme .bg-wave-blush\/30 {
+  background-color: #e5e7eb;
+}
+
+.admin-theme .bg-wave-deep,
+.admin-theme .hover\:bg-wave-ink:hover {
+  background-color: #111827;
+}
+
+.admin-theme .bg-wave-deep\/10 {
+  background-color: #f3f4f6;
+}
+
+.admin-theme .bg-wave-ink\/35 {
+  background-color: rgb(17 24 39 / 0.35);
+}
+
+.admin-theme .text-wave-ink,
+.admin-theme .hover\:text-wave-ink:hover,
+.admin-theme .text-wave-deep {
+  color: #111827;
+}
+
+.admin-theme .text-wave-blush {
+  color: #ffffff;
+}
+
+.admin-theme .text-wave-ink\/45 {
+  color: rgb(17 24 39 / 0.45);
+}
+
+.admin-theme .text-wave-ink\/55 {
+  color: rgb(17 24 39 / 0.55);
+}
+
+.admin-theme .text-wave-ink\/60 {
+  color: rgb(17 24 39 / 0.6);
+}
+
+.admin-theme .text-wave-ink\/65 {
+  color: rgb(17 24 39 / 0.65);
+}
+
+.admin-theme .text-wave-ink\/70 {
+  color: rgb(17 24 39 / 0.7);
+}
+
+.admin-theme .text-wave-ink\/75 {
+  color: rgb(17 24 39 / 0.75);
+}
+
+.admin-theme .border-wave-deep,
+.admin-theme .hover\:border-wave-deep\/35:hover,
+.admin-theme .hover\:border-wave-deep\/40:hover {
+  border-color: #111827;
+}
+
+.admin-theme .border-wave-deep\/10,
+.admin-theme .border-wave-deep\/15,
+.admin-theme .border-wave-deep\/20,
+.admin-theme .border-wave-deep\/25,
+.admin-theme .border-wave-blush\/60 {
+  border-color: #d1d5db;
+}
+
+.admin-theme .ring-wave-deep\/20 {
+  --tw-ring-color: rgb(17 24 39 / 0.2);
+}
+
+.gallery-scroller {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.gallery-scroller::-webkit-scrollbar {
+  display: none;
 }
