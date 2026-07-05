@@ -6,6 +6,8 @@ This is a strong portfolio/MVP codebase. The stack is sensible, the booking rule
 
 ## Quick Start
 
+AI agents and contributors should read [AGENTS.md](AGENTS.md) before choosing an environment. The default development target for AI-assisted work is staging.
+
 ```bash
 npm install
 npm run dev
@@ -24,16 +26,28 @@ npm.cmd run dev
 The app has two data modes behind the same UI:
 
 - **Demo data mode**: used when Supabase env vars are missing or still contain the placeholder key. Data is stored in memory in `src/lib/demo-data.ts`.
-- **Supabase mode**: used when `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are set in `.env`.
+- **Supabase mode**: used when `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are set in `.env`, `.env.staging.local`, `.env.production.local`, or the deploy environment.
+
+For most development against hosted data, use the staging project:
+
+```bash
+cp .env.staging.example .env.staging.local
+npm run dev:staging
+```
+
+Fill `.env.staging.local` with the staging Supabase URL and publishable key before relying on staging. Vite also loads generic `.env` files, so the mode-specific local file keeps staging runs from accidentally inheriting another environment.
 
 Staff admin access requires Supabase Auth. Create a real Supabase Auth user and add a matching row in `staff_profiles`.
 
 ## Scripts
 
 ```bash
+npm run dev:staging
 npm test -- --run
 npm run lint
 npm run build
+npm run build:staging
+npm run build:prod
 npm audit --omit=dev
 ```
 
@@ -173,6 +187,36 @@ VITE_SUPABASE_PUBLISHABLE_KEY=<local-or-hosted-publishable-key>
 
 Never commit `.env`.
 
+### Hosted Staging and Production
+
+Create separate Supabase projects for staging and production.
+
+For staging development:
+
+```bash
+cp .env.staging.example .env.staging.local
+```
+
+Set staging values in `.env.staging.local`, then run:
+
+```bash
+npm run dev:staging
+```
+
+For local production-build checks, copy `.env.production.example` to `.env.production.local` and fill in production values. Only use production Supabase for release checks, production deploys, or explicit production debugging.
+
+```bash
+npm run build:staging
+npm run build:prod
+```
+
+Never commit real env files or service-role keys. The frontend should only receive:
+
+```text
+VITE_SUPABASE_URL
+VITE_SUPABASE_PUBLISHABLE_KEY
+```
+
 ## Database Model
 
 Main tables:
@@ -227,6 +271,8 @@ Build command:
 ```bash
 npm run build
 ```
+
+`npm run build:prod` is an explicit equivalent for production-mode builds. Staging previews can use `npm run build:staging` with staging environment variables.
 
 Output directory:
 
