@@ -1,5 +1,9 @@
 import { addDays } from "date-fns";
-import { createStaffAppointment, saveStylistProfile } from "./admin-api";
+import {
+  createStaffAppointment,
+  rescheduleStaffAppointment,
+  saveStylistProfile
+} from "./admin-api";
 import {
   cancelBookingByToken,
   createAppointment,
@@ -1081,45 +1085,18 @@ export async function rescheduleAppointmentAsStaff(
     return;
   }
 
-  const { data: existing, error: loadError } = await supabase
-    .from("appointments")
-    .select("*")
-    .eq("id", id)
-    .single();
-  if (loadError) throw new Error(loadError.message);
+  const movedAppointment = await rescheduleStaffAppointment(
+    asRpcClient(),
+    id,
+    newStartsAt
+  );
 
-  const endsAt = new Date(
-    new Date(newStartsAt).getTime() +
-      Number(existing.service_duration_minutes_snapshot) * 60_000
-  ).toISOString();
-
-  const { data, error } = await supabase
-    .from("appointments")
-    .update({
-      starts_at: newStartsAt,
-      ends_at: endsAt
-    })
-    .eq("id", id)
-    .select("id, booking_reference, customer_email")
-    .single();
-  if (error) throw new Error(error.message);
-
-  await logStaffAppointmentEventBestEffort({
-    appointmentId: String(data.id),
-    eventType: "rescheduled",
-    metadata: {
-      previous_starts_at: String(existing.starts_at),
-      new_starts_at: newStartsAt
-    }
-  });
-  await queueAndSendStaffBookingEmailBestEffort({
-    appointmentId: String(data.id),
-    bookingReference: String(data.booking_reference),
-    body: `Your booking reference ${String(data.booking_reference)} has been rescheduled by the salon.`,
-    kind: "booking_rescheduled",
-    recipientEmail: String(data.customer_email ?? ""),
-    subject: "Your Fancy Wave appointment was moved"
-  });
+  if (movedAppointment.recipientEmail.trim()) {
+    await sendBookingEmailBestEffort(supabase, {
+      appointmentId: movedAppointment.appointmentId,
+      kind: "booking_rescheduled"
+    });
+  }
 }
 
 export async function rescheduleManagedBooking(
@@ -1643,34 +1620,6 @@ async function queueAndSendStaffBookingEmailBestEffort({
       `Booking email was not queued for ${bookingReference}`,
       error
     );
-  }
-}
-
-async function logStaffAppointmentEventBestEffort({
-  appointmentId,
-  eventType,
-  metadata
-}: {
-  appointmentId: string;
-  eventType: "rescheduled" | "cancelled";
-  metadata?: Record<string, unknown>;
-}): Promise<void> {
-  const client = supabase;
-  if (!client) return;
-
-  try {
-    const { error } = await client.from("appointment_events").insert({
-      appointment_id: appointmentId,
-      event_type: eventType,
-      actor_type: "staff",
-      metadata: metadata ?? {}
-    });
-
-    if (error) {
-      console.warn("Appointment event was not logged", error);
-    }
-  } catch (error) {
-    console.warn("Appointment event was not logged", error);
   }
 }
 

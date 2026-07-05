@@ -23,6 +23,14 @@ export type StaffAppointmentRequest = {
   internalNotes?: string | null;
 };
 
+export type StaffAppointmentMoveResult = {
+  appointmentId: string;
+  bookingReference: string;
+  recipientEmail: string;
+  startsAt: string;
+  endsAt: string;
+};
+
 export async function saveStylistProfile(
   client: RpcClient,
   request: SaveStylistProfileRequest
@@ -74,5 +82,31 @@ export async function createStaffAppointment(
     managementToken: values.management_token,
     startsAt: values.starts_at,
     endsAt: values.ends_at
+  };
+}
+
+export async function rescheduleStaffAppointment(
+  client: RpcClient,
+  appointmentId: string,
+  newStartsAt: string
+): Promise<StaffAppointmentMoveResult> {
+  const { data, error } = await client.rpc("reschedule_staff_appointment", {
+    p_appointment_id: appointmentId,
+    p_new_starts_at: newStartsAt
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  const values = row as Record<string, string | null>;
+
+  return {
+    appointmentId: String(values.appointment_id),
+    bookingReference: String(values.booking_reference),
+    recipientEmail: String(values.recipient_email ?? ""),
+    startsAt: String(values.starts_at),
+    endsAt: String(values.ends_at)
   };
 }

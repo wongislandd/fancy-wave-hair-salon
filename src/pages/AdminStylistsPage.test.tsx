@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -106,6 +106,7 @@ describe("AdminStylistsPage", () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
   });
 
@@ -120,6 +121,19 @@ describe("AdminStylistsPage", () => {
 
     expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining("Nina Park"));
     await waitFor(() => expect(deleteStylist).toHaveBeenCalledWith("stylist-nina"));
+  });
+
+  it("renders Chinese profile placeholders as localized text", async () => {
+    renderAdminStylistsPage();
+
+    await screen.findByRole("button", { name: /Nina Park/ });
+
+    expect(screen.getByLabelText("Chinese bio").getAttribute("placeholder")).toBe(
+      "\u7cbe\u51c6\u526a\u53d1\u3001\u67d4\u548c\u5c42\u6b21\u548c\u81ea\u7136\u9020\u578b"
+    );
+    expect(screen.getByLabelText("Chinese specialties").getAttribute("placeholder")).toBe(
+      "\u526a\u53d1, \u5c42\u6b21, \u5439\u98ce\u9020\u578b"
+    );
   });
 
   it("saves separate English and Chinese stylist profile fields", async () => {

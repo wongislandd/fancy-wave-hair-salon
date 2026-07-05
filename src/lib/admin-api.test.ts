@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { createStaffAppointment, saveStylistProfile } from "./admin-api";
+import {
+  createStaffAppointment,
+  rescheduleStaffAppointment,
+  saveStylistProfile
+} from "./admin-api";
 
 describe("admin API RPC wrappers", () => {
   it("saves stylist profile and service assignments with one transactional RPC", async () => {
@@ -76,5 +80,38 @@ describe("admin API RPC wrappers", () => {
     });
     expect(confirmation.bookingReference).toBe("FW-STAFF1");
     expect(confirmation.managementToken).toBe("staff-token");
+  });
+
+  it("moves a staff-managed appointment through the staff reschedule RPC", async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: [
+        {
+          appointment_id: "appt-1",
+          booking_reference: "FW-STAFF1",
+          recipient_email: "maya@example.com",
+          starts_at: "2026-07-07T14:00:00.000Z",
+          ends_at: "2026-07-07T15:00:00.000Z"
+        }
+      ],
+      error: null
+    });
+
+    const result = await rescheduleStaffAppointment(
+      { rpc },
+      "appt-1",
+      "2026-07-07T14:00:00.000Z"
+    );
+
+    expect(rpc).toHaveBeenCalledWith("reschedule_staff_appointment", {
+      p_appointment_id: "appt-1",
+      p_new_starts_at: "2026-07-07T14:00:00.000Z"
+    });
+    expect(result).toEqual({
+      appointmentId: "appt-1",
+      bookingReference: "FW-STAFF1",
+      recipientEmail: "maya@example.com",
+      startsAt: "2026-07-07T14:00:00.000Z",
+      endsAt: "2026-07-07T15:00:00.000Z"
+    });
   });
 });

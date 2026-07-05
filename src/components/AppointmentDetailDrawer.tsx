@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, CalendarX2, Clock3, Mail, Phone, Save, StickyNote, UserRound, X } from "lucide-react";
+import { CalendarClock, CalendarX2, ChevronDown, Clock3, Mail, Phone, Save, StickyNote, UserRound, X } from "lucide-react";
 import { customerHistoryForAppointment } from "../lib/admin";
 import {
   DEFAULT_SALON_TIME_ZONE,
@@ -40,11 +40,13 @@ export function AppointmentDetailDrawer({
   const [notes, setNotes] = useState("");
   const moveDates = useMemo(() => nextBookableDates(10), []);
   const [moveDate, setMoveDate] = useState(moveDates[0] ?? "");
+  const [isMoveSectionOpen, setIsMoveSectionOpen] = useState(false);
   const [selectedMoveSlot, setSelectedMoveSlot] = useState<string | null>(null);
 
   useEffect(() => {
     setNotes(appointment?.internalNotes ?? "");
     setMoveDate(moveDates[0] ?? "");
+    setIsMoveSectionOpen(false);
     setSelectedMoveSlot(null);
   }, [appointment, moveDates]);
 
@@ -66,6 +68,7 @@ export function AppointmentDetailDrawer({
     enabled: Boolean(
       appointment &&
         appointment.status === "confirmed" &&
+        isMoveSectionOpen &&
         moveService &&
         moveStylist &&
         moveDate
@@ -84,6 +87,7 @@ export function AppointmentDetailDrawer({
       rescheduleAppointmentAsStaff(appointment!.id, selectedSlot!.startsAt),
     onSuccess: () => {
       setSelectedMoveSlot(null);
+      setIsMoveSectionOpen(false);
       queryClient.invalidateQueries({ queryKey: ["admin-appointments"] });
       queryClient.invalidateQueries({ queryKey: ["admin-move-slots", appointment!.id] });
     }
@@ -100,6 +104,7 @@ export function AppointmentDetailDrawer({
   const customerPhone = appointment.customerPhone.trim();
   const phoneDigits = customerPhone.replace(/\D/g, "");
   const hasNoteChanges = notes.trim() !== (appointment.internalNotes ?? "").trim();
+  const movePanelId = `move-appointment-panel-${appointment.id}`;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-wave-ink/35 backdrop-blur-sm">
@@ -191,73 +196,91 @@ export function AppointmentDetailDrawer({
           </section>
 
           {appointment.status === "confirmed" && (
-            <section className="mt-6 rounded-2xl border border-wave-deep/10 bg-wave-cream/55 p-4">
-              <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-wave-deep">
-                <CalendarClock size={16} />
-                {t("drawer.moveAppointment")}
-              </h3>
-              <p className="mt-2 text-sm text-wave-ink/65">{t("drawer.moveCopy")}</p>
-              <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
-                {moveDates.map((day) => (
-                  <button
-                    key={day}
-                    type="button"
-                    onClick={() => {
-                      setMoveDate(day);
-                      setSelectedMoveSlot(null);
-                    }}
-                    className={`focus-ring min-w-[112px] rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${
-                      moveDate === day
-                        ? "border-wave-deep bg-wave-deep text-white"
-                        : "border-wave-deep/10 bg-white"
-                    }`}
-                  >
-                    <span className="block">{formatDateKeyInTimeZone(day, DEFAULT_SALON_TIME_ZONE, { weekday: "short" }, locale)}</span>
-                    <span className={moveDate === day ? "text-white/75" : "text-wave-ink/55"}>
-                      {formatDateKeyInTimeZone(day, DEFAULT_SALON_TIME_ZONE, { month: "short", day: "numeric" }, locale)}
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <div className="mt-3 rounded-2xl border border-wave-deep/10 bg-white p-3">
-                {moveSlotsQuery.isFetching && (
-                  <p className="text-sm text-wave-ink/65">{t("drawer.loadingTimes")}</p>
-                )}
-                {!moveSlotsQuery.isFetching && moveSlots.length === 0 && (
-                  <p className="text-sm text-wave-ink/65">{t("drawer.noMoveTimes")}</p>
-                )}
-                {!moveSlotsQuery.isFetching && moveSlots.length > 0 && (
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {moveSlots.map((slot) => (
+            <section className="mt-6 overflow-hidden rounded-2xl border border-wave-deep/10 bg-wave-cream/55">
+              <button
+                type="button"
+                aria-controls={movePanelId}
+                aria-expanded={isMoveSectionOpen}
+                onClick={() => setIsMoveSectionOpen((current) => !current)}
+                className="focus-ring flex w-full items-center justify-between gap-3 rounded-2xl p-4 text-left"
+              >
+                <span className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-wave-deep">
+                  <CalendarClock size={16} />
+                  {t("drawer.moveAppointment")}
+                </span>
+                <ChevronDown
+                  size={18}
+                  className={`shrink-0 text-wave-deep transition-transform ${
+                    isMoveSectionOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              {isMoveSectionOpen && (
+                <div id={movePanelId} className="px-4 pb-4">
+                  <p className="text-sm text-wave-ink/65">{t("drawer.moveCopy")}</p>
+                  <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
+                    {moveDates.map((day) => (
                       <button
-                        key={slot.startsAt}
+                        key={day}
                         type="button"
-                        onClick={() => setSelectedMoveSlot(slot.startsAt)}
-                        className={`focus-ring rounded-2xl border p-3 text-left text-sm transition ${
-                          selectedMoveSlot === slot.startsAt
-                            ? "border-wave-deep ring-2 ring-wave-deep/20"
-                            : "border-wave-deep/10 hover:border-wave-deep/40"
+                        onClick={() => {
+                          setMoveDate(day);
+                          setSelectedMoveSlot(null);
+                        }}
+                        className={`focus-ring min-w-[112px] rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${
+                          moveDate === day
+                            ? "border-wave-deep bg-wave-deep text-white"
+                            : "border-wave-deep/10 bg-white"
                         }`}
                       >
-                        <span className="flex items-center gap-2 font-black">
-                          <Clock3 size={15} />
-                          {formatTimeInTimeZone(slot.startsAt, DEFAULT_SALON_TIME_ZONE, locale)}
+                        <span className="block">{formatDateKeyInTimeZone(day, DEFAULT_SALON_TIME_ZONE, { weekday: "short" }, locale)}</span>
+                        <span className={moveDate === day ? "text-white/75" : "text-wave-ink/55"}>
+                          {formatDateKeyInTimeZone(day, DEFAULT_SALON_TIME_ZONE, { month: "short", day: "numeric" }, locale)}
                         </span>
-                        <span className="mt-1 block text-wave-ink/60">{appointment.stylistNameSnapshot}</span>
                       </button>
                     ))}
                   </div>
-                )}
-              </div>
-              <button
-                type="button"
-                disabled={!selectedSlot || moveMutation.isPending}
-                onClick={() => moveMutation.mutate()}
-                className="focus-ring mt-3 inline-flex items-center gap-2 rounded-full bg-wave-deep px-4 py-2 font-semibold text-white disabled:opacity-45"
-              >
-                <CalendarClock size={16} />
-                {moveMutation.isPending ? t("drawer.moving") : t("drawer.moveAppointment")}
-              </button>
+                  <div className="mt-3 rounded-2xl border border-wave-deep/10 bg-white p-3">
+                    {moveSlotsQuery.isFetching && (
+                      <p className="text-sm text-wave-ink/65">{t("drawer.loadingTimes")}</p>
+                    )}
+                    {!moveSlotsQuery.isFetching && moveSlots.length === 0 && (
+                      <p className="text-sm text-wave-ink/65">{t("drawer.noMoveTimes")}</p>
+                    )}
+                    {!moveSlotsQuery.isFetching && moveSlots.length > 0 && (
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {moveSlots.map((slot) => (
+                          <button
+                            key={slot.startsAt}
+                            type="button"
+                            onClick={() => setSelectedMoveSlot(slot.startsAt)}
+                            className={`focus-ring rounded-2xl border p-3 text-left text-sm transition ${
+                              selectedMoveSlot === slot.startsAt
+                                ? "border-wave-deep ring-2 ring-wave-deep/20"
+                                : "border-wave-deep/10 hover:border-wave-deep/40"
+                            }`}
+                          >
+                            <span className="flex items-center gap-2 font-black">
+                              <Clock3 size={15} />
+                              {formatTimeInTimeZone(slot.startsAt, DEFAULT_SALON_TIME_ZONE, locale)}
+                            </span>
+                            <span className="mt-1 block text-wave-ink/60">{appointment.stylistNameSnapshot}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!selectedSlot || moveMutation.isPending}
+                    onClick={() => moveMutation.mutate()}
+                    className="focus-ring mt-3 inline-flex items-center gap-2 rounded-full bg-wave-deep px-4 py-2 font-semibold text-white disabled:opacity-45"
+                  >
+                    <CalendarClock size={16} />
+                    {moveMutation.isPending ? t("drawer.moving") : t("drawer.moveAppointment")}
+                  </button>
+                </div>
+              )}
             </section>
           )}
 

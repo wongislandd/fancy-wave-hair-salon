@@ -299,7 +299,7 @@ export function AdminStylistsPage() {
                       className="focus-ring min-h-28 w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
                       value={form.bioZh}
                       onChange={(event) => setForm({ ...form, bioZh: event.target.value })}
-                      placeholder="\u7cbe\u51c6\u526a\u53d1\u3001\u67d4\u548c\u5c42\u6b21\u548c\u81ea\u7136\u9020\u578b"
+                      placeholder={"\u7cbe\u51c6\u526a\u53d1\u3001\u67d4\u548c\u5c42\u6b21\u548c\u81ea\u7136\u9020\u578b"}
                     />
                   </Field>
                   <Field label={t("admin.stylists.specialtiesZh")}>
@@ -307,7 +307,7 @@ export function AdminStylistsPage() {
                       className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
                       value={form.specialtiesZh}
                       onChange={(event) => setForm({ ...form, specialtiesZh: event.target.value })}
-                      placeholder="\u526a\u53d1, \u5c42\u6b21, \u5439\u98ce\u9020\u578b"
+                      placeholder={"\u526a\u53d1, \u5c42\u6b21, \u5439\u98ce\u9020\u578b"}
                     />
                   </Field>
                 </div>
