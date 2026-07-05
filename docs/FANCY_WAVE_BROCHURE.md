@@ -95,7 +95,7 @@ Staff can create appointments directly inside the admin portal. This keeps walk-
 
 ### Calendar View
 
-The calendar view turns appointments into visible time blocks so staff can understand the day, move through dates, and add appointments from the schedule.
+The calendar view turns appointments into visible time blocks so staff can understand busy days at a glance. Staff can move through dates, switch between day, three-day, and week views, and add appointments directly from the schedule.
 
 ![Admin calendar](./brochure-screenshots-staging/11-admin-calendar.png)
 
