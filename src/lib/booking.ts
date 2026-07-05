@@ -3,6 +3,7 @@ import type {
   Appointment,
   AppointmentStatus,
   AvailableSlot,
+  BusinessHourException,
   BusinessHour,
   Service
 } from "./types";
@@ -83,6 +84,7 @@ export interface DeriveAvailableSlotsInput {
   date: string;
   service: Service;
   businessHours: BusinessHour[];
+  specialHours?: BusinessHourException[];
   existingAppointments: Appointment[];
   salonTimeZone: string;
   slotIntervalMinutes: number;
@@ -95,6 +97,7 @@ export function deriveAvailableSlots({
   date,
   service,
   businessHours,
+  specialHours = [],
   existingAppointments,
   salonTimeZone,
   slotIntervalMinutes,
@@ -102,9 +105,7 @@ export function deriveAvailableSlots({
   stylistName = "",
   now
 }: DeriveAvailableSlotsInput): AvailableSlot[] {
-  const dayStart = new Date(`${date}T00:00:00.000Z`);
-  const dayOfWeek = dayStart.getUTCDay();
-  const hours = businessHours.find((hour) => hour.dayOfWeek === dayOfWeek);
+  const hours = resolveBusinessHoursForDate(date, businessHours, specialHours);
 
   if (!hours || hours.isClosed) {
     return [];
@@ -154,6 +155,33 @@ export function deriveAvailableSlots({
   }
 
   return slots;
+}
+
+export function resolveBusinessHoursForDate(
+  date: string,
+  businessHours: BusinessHour[],
+  specialHours: BusinessHourException[] = []
+): BusinessHour | null {
+  const dayStart = new Date(`${date}T00:00:00.000Z`);
+  const dayOfWeek = dayStart.getUTCDay();
+  const weeklyHours = businessHours.find((hour) => hour.dayOfWeek === dayOfWeek);
+
+  if (!weeklyHours) {
+    return null;
+  }
+
+  const exception = matchingBusinessHourException(date, specialHours);
+  if (!exception) {
+    return weeklyHours;
+  }
+
+  return {
+    id: `${weeklyHours.id}-${exception.id}`,
+    dayOfWeek,
+    opensAt: exception.opensAt,
+    closesAt: exception.closesAt,
+    isClosed: exception.isClosed
+  };
 }
 
 export function zonedDateAndTimeToUtc(
@@ -281,6 +309,19 @@ function formatSlotLabel(date: Date, timeZone: string): string {
     hour: "numeric",
     minute: "2-digit"
   }).format(date);
+}
+
+function matchingBusinessHourException(
+  date: string,
+  specialHours: BusinessHourException[]
+): BusinessHourException | null {
+  return specialHours
+    .filter((exception) => exception.startsOn <= date && exception.endsOn >= date)
+    .sort((a, b) => {
+      const startsDelta = b.startsOn.localeCompare(a.startsOn);
+      if (startsDelta !== 0) return startsDelta;
+      return b.id.localeCompare(a.id);
+    })[0] ?? null;
 }
 
 function formatDateTimeInTimeZone(date: Date, timeZone: string, locale = "en-US"): string {

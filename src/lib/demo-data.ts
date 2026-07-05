@@ -1,5 +1,6 @@
 import type {
   Appointment,
+  BusinessHourException,
   BusinessHour,
   GalleryPhoto,
   Service,
@@ -8,9 +9,10 @@ import type {
   StylistHour
 } from "./types";
 import { zonedDateAndTimeToUtc } from "./booking";
+import { salonName } from "./salon";
 
 export const demoSettings: SalonSettings = {
-  salonName: "Fancy Wave Hair Salon (Flushing)",
+  salonName,
   timezone: "America/New_York",
   slotIntervalMinutes: 30,
   minBookingNoticeMinutes: 120,
@@ -82,11 +84,17 @@ export const demoBusinessHours: BusinessHour[] = [
   { id: "sat", dayOfWeek: 6, opensAt: "09:00", closesAt: "16:00", isClosed: false }
 ];
 
+export const demoBusinessHourExceptions: BusinessHourException[] = [];
+
 export const demoStylists: Stylist[] = [
   {
     id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     name: "Nina Park",
+    bioEn: "Precision cuts, soft layers, and lived-in styling.",
+    bioZh: "\u7cbe\u51c6\u526a\u53d1\u3001\u67d4\u548c\u5c42\u6b21\u548c\u81ea\u7136\u9020\u578b\u3002",
     bio: "Precision cuts, soft layers, and lived-in styling.",
+    specialtiesEn: ["Cuts", "Layers", "Blowouts"],
+    specialtiesZh: ["\u526a\u53d1", "\u5c42\u6b21", "\u5439\u98ce\u9020\u578b"],
     specialties: ["Cuts", "Layers", "Blowouts"],
     serviceIds: [demoServices[0].id, demoServices[2].id],
     isActive: true,
@@ -95,7 +103,11 @@ export const demoStylists: Stylist[] = [
   {
     id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     name: "Theo Brooks",
+    bioEn: "Gloss, dimensional color, and healthy shine treatments.",
+    bioZh: "\u4e13\u6ce8\u4eae\u6cfd\u3001\u7acb\u4f53\u67d3\u53d1\u548c\u5065\u5eb7\u5149\u6cfd\u62a4\u7406\u3002",
     bio: "Gloss, dimensional color, and healthy shine treatments.",
+    specialtiesEn: ["Gloss", "Color", "Treatments"],
+    specialtiesZh: ["\u4eae\u6cfd", "\u67d3\u53d1", "\u62a4\u7406"],
     specialties: ["Gloss", "Color", "Treatments"],
     serviceIds: [demoServices[1].id, demoServices[3].id, demoServices[2].id],
     isActive: true,
@@ -104,7 +116,11 @@ export const demoStylists: Stylist[] = [
   {
     id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
     name: "Mara Lee",
+    bioEn: "Full color transformations and polished event styling.",
+    bioZh: "\u64c5\u957f\u5168\u5934\u67d3\u53d1\u8f6c\u53d8\u548c\u7cbe\u81f4\u6d3b\u52a8\u9020\u578b\u3002",
     bio: "Full color transformations and polished event styling.",
+    specialtiesEn: ["Full Color", "Styling"],
+    specialtiesZh: ["\u5168\u5934\u67d3\u53d1", "\u9020\u578b"],
     specialties: ["Full Color", "Styling"],
     serviceIds: [demoServices[0].id, demoServices[2].id, demoServices[3].id],
     isActive: true,
@@ -218,8 +234,8 @@ export const demoGalleryPhotos: GalleryPhoto[] = [
     id: "gallery-demo-3",
     storagePath: "demo/guest-chair.jpg",
     imageUrl: "/assets/salon-hero.png",
-    altText: "Guest chair inside Fancy Wave Hair Salon",
-    altTextEn: "Guest chair inside Fancy Wave Hair Salon",
+    altText: "Guest chair inside Fancy Wave Beauty Salon",
+    altTextEn: "Guest chair inside Fancy Wave Beauty Salon",
     altTextZh: "\u6c99\u9f99\u5ba2\u4eba\u5ea7\u6905",
     caption: "Fresh appointments, friendly staff, clean finish.",
     displayOrder: 3,

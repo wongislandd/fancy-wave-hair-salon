@@ -6,11 +6,7 @@ import { listPublicGalleryPhotos, listPublicServices } from "../lib/data";
 import { formatPriceRange } from "../lib/booking";
 import { useLanguage } from "../lib/use-language";
 import { getLocalizedGalleryPhotoText, getLocalizedServiceText, localeForLanguage } from "../lib/localization";
-
-const salonAddress = "135-45 Roosevelt Ave, Flushing, NY 11354";
-const encodedSalonAddress = encodeURIComponent(salonAddress);
-const googleMapsEmbedUrl = `https://www.google.com/maps?q=${encodedSalonAddress}&output=embed`;
-const googleMapsDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedSalonAddress}`;
+import { googleMapsDirectionsUrl, googleMapsEmbedUrl, salonAddress, salonName } from "../lib/salon";
 
 export function LandingPage() {
   const { language, t } = useLanguage();
@@ -106,7 +102,7 @@ export function LandingPage() {
                 <p className="flex items-start gap-3 font-semibold">
                   <MapPin className="mt-0.5 shrink-0 text-wave-deep" size={20} />
                   <span>
-                    <span className="block">Fancy Wave Hair Salon (Flushing)</span>
+                    <span className="block">{salonName}</span>
                     <span className="mt-1 block text-sm font-normal text-wave-ink/65">{salonAddress}</span>
                   </span>
                 </p>
@@ -141,7 +137,7 @@ export function LandingPage() {
 
           <div className="min-h-[340px] overflow-hidden rounded-[2rem] border border-wave-deep/10 bg-wave-mint">
             <iframe
-              title="Map to Fancy Wave Hair Salon in Flushing"
+              title={`Map to ${salonName} in Flushing`}
               src={googleMapsEmbedUrl}
               className="h-full min-h-[340px] w-full"
               loading="lazy"

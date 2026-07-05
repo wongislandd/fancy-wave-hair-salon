@@ -20,7 +20,7 @@ import {
   nextBookableDates
 } from "../lib/data";
 import { useLanguage } from "../lib/use-language";
-import { getLocalizedServiceText, localeForLanguage } from "../lib/localization";
+import { getLocalizedServiceText, getLocalizedStylistText, localeForLanguage } from "../lib/localization";
 import type { AvailableSlot, Service, Stylist } from "../lib/types";
 
 export function AdminAddAppointmentDialog({ onClose }: { onClose: () => void }) {
@@ -173,15 +173,19 @@ export function AdminAddAppointmentDialog({ onClose }: { onClose: () => void }) 
                 <div className="mt-3 grid gap-3 md:grid-cols-2">
                   {!serviceId && <p className="text-sm text-wave-ink/65">{t("admin.addAppointment.chooseServiceFirst")}</p>}
                   {stylistsQuery.isLoading && <p className="text-sm text-wave-ink/65">{t("booking.loadingStylists")}</p>}
-                  {stylists.map((stylist) => (
-                    <ChoiceButton
-                      key={stylist.id}
-                      selected={stylist.id === stylistId}
-                      onClick={() => selectStylist(stylist)}
-                      title={stylist.name}
-                      meta={stylist.specialties.join(", ")}
-                    />
-                  ))}
+                  {stylists.map((stylist) => {
+                    const stylistText = getLocalizedStylistText(stylist, language);
+
+                    return (
+                      <ChoiceButton
+                        key={stylist.id}
+                        selected={stylist.id === stylistId}
+                        onClick={() => selectStylist(stylist)}
+                        title={stylist.name}
+                        meta={stylistText.specialties.join(", ")}
+                      />
+                    );
+                  })}
                 </div>
                 <FieldError message={form.formState.errors.stylistId?.message} />
               </section>

@@ -13,8 +13,10 @@ describe("admin API RPC wrappers", () => {
       {
         id: "stylist-1",
         name: "Nina Park",
-        bio: "Precision cuts and soft layers.",
-        specialties: ["Cuts", "Layers"],
+        bioEn: "Precision cuts and soft layers.",
+        bioZh: "\u7cbe\u51c6\u526a\u53d1\u548c\u67d4\u548c\u5c42\u6b21\u3002",
+        specialtiesEn: ["Cuts", "Layers"],
+        specialtiesZh: ["\u526a\u53d1", "\u5c42\u6b21"],
         serviceIds: ["service-1", "service-2"],
         isActive: true
       }
@@ -24,8 +26,10 @@ describe("admin API RPC wrappers", () => {
     expect(rpc).toHaveBeenCalledWith("save_stylist_profile", {
       p_stylist_id: "stylist-1",
       p_name: "Nina Park",
-      p_bio: "Precision cuts and soft layers.",
-      p_specialties: ["Cuts", "Layers"],
+      p_bio_en: "Precision cuts and soft layers.",
+      p_bio_zh: "\u7cbe\u51c6\u526a\u53d1\u548c\u67d4\u548c\u5c42\u6b21\u3002",
+      p_specialties_en: ["Cuts", "Layers"],
+      p_specialties_zh: ["\u526a\u53d1", "\u5c42\u6b21"],
       p_service_ids: ["service-1", "service-2"],
       p_is_active: true
     });

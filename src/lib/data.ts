@@ -10,6 +10,7 @@ import { dateKeyInTimeZone, deriveAvailableSlots } from "./booking";
 import { sendBookingEmailBestEffort } from "./email-api";
 import {
   demoAppointments,
+  demoBusinessHourExceptions,
   demoBusinessHours,
   demoGalleryPhotos,
   demoServices,
@@ -25,6 +26,7 @@ import type {
   Appointment,
   AppointmentConfirmation,
   AvailableSlot,
+  BusinessHourException,
   BookingRequest,
   BusinessHour,
   GalleryPhoto,
@@ -38,8 +40,10 @@ const galleryBucketName = "gallery-photos";
 
 type StylistSaveValues = {
   name: string;
-  bio: string;
-  specialties: string[];
+  bioEn: string;
+  bioZh: string;
+  specialtiesEn: string[];
+  specialtiesZh: string[];
   serviceIds: string[];
   isActive: boolean;
 };
@@ -53,15 +57,27 @@ type GalleryPhotoSaveValues = {
   isActive: boolean;
 };
 
+export type BusinessHourExceptionSaveValues = {
+  startsOn: string;
+  endsOn: string;
+  opensAt: string;
+  closesAt: string;
+  isClosed: boolean;
+  note?: string | null;
+};
+
 export async function listPublicServices(): Promise<Service[]> {
   if (!supabase) {
-    return demoServices.filter((service) => service.isActive);
+    return demoServices
+      .filter((service) => service.isActive)
+      .sort(byDisplayOrder);
   }
 
   const { data, error } = await supabase
     .from("services")
     .select("*")
     .eq("is_active", true)
+    .is("deleted_at", null)
     .order("display_order");
 
   if (error) throw new Error(error.message);
@@ -74,10 +90,33 @@ export async function listAdminServices(): Promise<Service[]> {
   const { data, error } = await supabase
     .from("services")
     .select("*")
+    .is("deleted_at", null)
     .order("display_order");
 
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapService);
+}
+
+export async function updateServiceOrder(serviceIds: string[]): Promise<void> {
+  const client = supabase;
+
+  if (!client) {
+    serviceIds.forEach((id, index) => {
+      const service = demoServices.find((item) => item.id === id);
+      if (service) service.displayOrder = index + 1;
+    });
+    return;
+  }
+
+  const updates = serviceIds.map((id, index) =>
+    client
+      .from("services")
+      .update({ display_order: index + 1 })
+      .eq("id", id)
+  );
+  const results = await Promise.all(updates);
+  const failed = results.find((result) => result.error);
+  if (failed?.error) throw new Error(failed.error.message);
 }
 
 export async function listPublicStylists(serviceId?: string): Promise<Stylist[]> {
@@ -92,6 +131,7 @@ export async function listPublicStylists(serviceId?: string): Promise<Stylist[]>
     .from("stylists")
     .select("*, stylist_services(service_id)")
     .eq("is_active", true)
+    .is("deleted_at", null)
     .order("display_order");
 
   if (error) throw new Error(error.message);
@@ -106,6 +146,7 @@ export async function listAdminStylists(): Promise<Stylist[]> {
   const { data, error } = await supabase
     .from("stylists")
     .select("*, stylist_services(service_id)")
+    .is("deleted_at", null)
     .order("display_order");
 
   if (error) throw new Error(error.message);
@@ -325,6 +366,21 @@ export async function listBusinessHours(): Promise<BusinessHour[]> {
   return (data ?? []).map(mapBusinessHour);
 }
 
+export async function listBusinessHourExceptions(): Promise<BusinessHourException[]> {
+  if (!supabase) {
+    return [...demoBusinessHourExceptions].sort(byExceptionStart);
+  }
+
+  const { data, error } = await supabase
+    .from("business_hour_exceptions")
+    .select("*")
+    .order("starts_on", { ascending: true })
+    .order("ends_on", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapBusinessHourException);
+}
+
 export async function listStylistHours(stylistId: string): Promise<StylistHour[]> {
   if (!supabase) {
     return buildStylistHoursFor(stylistId, demoBusinessHours, demoStylistHours);
@@ -364,7 +420,7 @@ export async function getAvailableSlots(
         deriveAvailableSlots({
           date,
           service,
-          businessHours: businessHoursForStylist(availableStylist.id),
+          businessHours: businessHoursForStylist(availableStylist.id, date),
           existingAppointments: demoAppointments,
           salonTimeZone: demoSettings.timezone,
           slotIntervalMinutes: demoSettings.slotIntervalMinutes,
@@ -617,8 +673,7 @@ export async function saveService(
     price_cents: priceCents,
     price_max_cents: priceMaxCents,
     price_is_starting_at: values.priceIsStartingAt,
-    is_active: values.isActive,
-    display_order: demoServices.length + 1
+    is_active: values.isActive
   };
 
   if (!supabase) {
@@ -650,7 +705,7 @@ export async function saveService(
         priceMaxCents,
         priceIsStartingAt: values.priceIsStartingAt,
         isActive: values.isActive,
-        displayOrder: demoServices.length + 1
+        displayOrder: nextServiceDisplayOrder()
       });
     }
     return;
@@ -658,22 +713,70 @@ export async function saveService(
 
   const query = existingId
     ? supabase.from("services").update(payload).eq("id", existingId)
-    : supabase.from("services").insert(payload);
+    : supabase.from("services").insert({
+        ...payload,
+        display_order: await nextSupabaseServiceDisplayOrder()
+      });
   const { error } = await query;
   if (error) throw new Error(error.message);
+}
+
+export async function deleteService(serviceId: string): Promise<void> {
+  if (!supabase) {
+    const index = demoServices.findIndex((service) => service.id === serviceId);
+    if (index < 0) return;
+
+    demoServices.splice(index, 1);
+    demoStylists.forEach((stylist) => {
+      stylist.serviceIds = stylist.serviceIds.filter((id) => id !== serviceId);
+    });
+    demoServices
+      .sort(byDisplayOrder)
+      .forEach((service, serviceIndex) => {
+        service.displayOrder = serviceIndex + 1;
+      });
+    return;
+  }
+
+  const deletedAt = new Date().toISOString();
+  const { error } = await supabase
+    .from("services")
+    .update({
+      deleted_at: deletedAt,
+      is_active: false
+    })
+    .eq("id", serviceId);
+  if (error) throw new Error(error.message);
+
+  const assignmentsResult = await supabase
+    .from("stylist_services")
+    .delete()
+    .eq("service_id", serviceId);
+  if (assignmentsResult.error) throw new Error(assignmentsResult.error.message);
 }
 
 export async function saveStylist(
   values: StylistSaveValues,
   existingId?: string
 ): Promise<Stylist> {
+  const englishBio = values.bioEn.trim();
+  const chineseBio = values.bioZh.trim();
+  const legacyBio = englishBio || chineseBio;
+  const legacySpecialties = values.specialtiesEn.length > 0
+    ? values.specialtiesEn
+    : values.specialtiesZh;
+
   if (!supabase) {
     if (existingId) {
       const stylist = demoStylists.find((item) => item.id === existingId);
       if (!stylist) throw new Error("Stylist not found");
       stylist.name = values.name;
-      stylist.bio = values.bio;
-      stylist.specialties = values.specialties;
+      stylist.bioEn = englishBio;
+      stylist.bioZh = chineseBio;
+      stylist.bio = legacyBio;
+      stylist.specialtiesEn = values.specialtiesEn;
+      stylist.specialtiesZh = values.specialtiesZh;
+      stylist.specialties = legacySpecialties;
       stylist.serviceIds = values.serviceIds;
       stylist.isActive = values.isActive;
       return stylist;
@@ -682,8 +785,12 @@ export async function saveStylist(
     const stylist: Stylist = {
       id: crypto.randomUUID(),
       name: values.name,
-      bio: values.bio,
-      specialties: values.specialties,
+      bioEn: englishBio,
+      bioZh: chineseBio,
+      bio: legacyBio,
+      specialtiesEn: values.specialtiesEn,
+      specialtiesZh: values.specialtiesZh,
+      specialties: legacySpecialties,
       serviceIds: values.serviceIds,
       isActive: values.isActive,
       displayOrder: demoStylists.length + 1
@@ -700,6 +807,48 @@ export async function saveStylist(
   const saved = (await listAdminStylists()).find((stylist) => stylist.id === stylistId);
   if (!saved) throw new Error("Stylist was saved but could not be loaded");
   return saved;
+}
+
+export async function deleteStylist(stylistId: string): Promise<void> {
+  if (!supabase) {
+    const index = demoStylists.findIndex((stylist) => stylist.id === stylistId);
+    if (index < 0) return;
+
+    demoStylists.splice(index, 1);
+    for (let hourIndex = demoStylistHours.length - 1; hourIndex >= 0; hourIndex -= 1) {
+      if (demoStylistHours[hourIndex].stylistId === stylistId) {
+        demoStylistHours.splice(hourIndex, 1);
+      }
+    }
+    demoStylists
+      .sort(byDisplayOrder)
+      .forEach((stylist, stylistIndex) => {
+        stylist.displayOrder = stylistIndex + 1;
+      });
+    return;
+  }
+
+  const deletedAt = new Date().toISOString();
+  const { error } = await supabase
+    .from("stylists")
+    .update({
+      deleted_at: deletedAt,
+      is_active: false
+    })
+    .eq("id", stylistId);
+  if (error) throw new Error(error.message);
+
+  const assignmentsResult = await supabase
+    .from("stylist_services")
+    .delete()
+    .eq("stylist_id", stylistId);
+  if (assignmentsResult.error) throw new Error(assignmentsResult.error.message);
+
+  const hoursResult = await supabase
+    .from("stylist_hours")
+    .delete()
+    .eq("stylist_id", stylistId);
+  if (hoursResult.error) throw new Error(hoursResult.error.message);
 }
 
 export async function updateStylistHour(
@@ -782,6 +931,76 @@ export async function updateBusinessHour(
       is_closed: patch.isClosed
     })
     .eq("id", hour.id);
+  if (error) throw new Error(error.message);
+}
+
+export async function saveBusinessHourException(
+  values: BusinessHourExceptionSaveValues,
+  existingId?: string
+): Promise<BusinessHourException> {
+  const startsOn = values.startsOn;
+  const endsOn = values.endsOn || values.startsOn;
+  const note = values.note?.trim() || null;
+  const opensAt = values.opensAt;
+  const closesAt = values.closesAt;
+
+  if (!supabase) {
+    const next: BusinessHourException = {
+      id: existingId ?? crypto.randomUUID(),
+      startsOn,
+      endsOn,
+      opensAt,
+      closesAt,
+      isClosed: values.isClosed,
+      note
+    };
+    const index = demoBusinessHourExceptions.findIndex((item) => item.id === existingId);
+    if (index >= 0) {
+      demoBusinessHourExceptions[index] = next;
+    } else {
+      demoBusinessHourExceptions.push(next);
+    }
+    return next;
+  }
+
+  const payload = {
+    starts_on: startsOn,
+    ends_on: endsOn,
+    opens_at: opensAt,
+    closes_at: closesAt,
+    is_closed: values.isClosed,
+    note
+  };
+
+  const query = existingId
+    ? supabase
+        .from("business_hour_exceptions")
+        .update(payload)
+        .eq("id", existingId)
+        .select("*")
+        .single()
+    : supabase
+        .from("business_hour_exceptions")
+        .insert(payload)
+        .select("*")
+        .single();
+  const { data, error } = await query;
+
+  if (error) throw new Error(error.message);
+  return mapBusinessHourException(data);
+}
+
+export async function deleteBusinessHourException(id: string): Promise<void> {
+  if (!supabase) {
+    const index = demoBusinessHourExceptions.findIndex((item) => item.id === id);
+    if (index >= 0) demoBusinessHourExceptions.splice(index, 1);
+    return;
+  }
+
+  const { error } = await supabase
+    .from("business_hour_exceptions")
+    .delete()
+    .eq("id", id);
   if (error) throw new Error(error.message);
 }
 
@@ -1010,7 +1229,7 @@ function mapService(row: Record<string, unknown>): Service {
       : Number(row.price_max_cents),
     priceIsStartingAt: Boolean(row.price_is_starting_at),
     isActive: Boolean(row.is_active),
-    displayOrder: Number(row.display_order)
+    displayOrder: Number(row.display_order ?? 0)
   };
 }
 
@@ -1078,6 +1297,18 @@ function mapBusinessHour(row: Record<string, unknown>): BusinessHour {
   };
 }
 
+function mapBusinessHourException(row: Record<string, unknown>): BusinessHourException {
+  return {
+    id: String(row.id),
+    startsOn: String(row.starts_on),
+    endsOn: String(row.ends_on),
+    opensAt: String(row.opens_at).slice(0, 5),
+    closesAt: String(row.closes_at).slice(0, 5),
+    isClosed: Boolean(row.is_closed),
+    note: row.note ? String(row.note) : null
+  };
+}
+
 function mapStylistHour(row: Record<string, unknown>): StylistHour {
   return {
     id: String(row.id),
@@ -1094,14 +1325,30 @@ function mapStylist(row: Record<string, unknown>): Stylist {
   const nestedServices = Array.isArray(row.stylist_services)
     ? (row.stylist_services as Array<Record<string, unknown>>)
     : [];
+  const bioEn = String(row.bio_en ?? "").trim() || String(row.bio ?? "");
+  const bioZh = String(row.bio_zh ?? "");
+  const legacySpecialties = Array.isArray(row.specialties)
+    ? row.specialties.map(String)
+    : [];
+  const mappedSpecialtiesEn = Array.isArray(row.specialties_en)
+    ? row.specialties_en.map(String)
+    : [];
+  const specialtiesEn = mappedSpecialtiesEn.length > 0
+    ? mappedSpecialtiesEn
+    : legacySpecialties;
+  const specialtiesZh = Array.isArray(row.specialties_zh)
+    ? row.specialties_zh.map(String)
+    : [];
 
   return {
     id: String(row.id),
     name: String(row.name),
-    bio: String(row.bio ?? ""),
-    specialties: Array.isArray(row.specialties)
-      ? row.specialties.map(String)
-      : [],
+    bioEn,
+    bioZh,
+    bio: bioEn || bioZh,
+    specialtiesEn,
+    specialtiesZh,
+    specialties: specialtiesEn.length > 0 ? specialtiesEn : specialtiesZh,
     serviceIds: nestedServices.map((item) => String(item.service_id)),
     isActive: Boolean(row.is_active),
     displayOrder: Number(row.display_order)
@@ -1137,14 +1384,79 @@ function buildStylistHoursFor(
     .sort((a, b) => a.dayOfWeek - b.dayOfWeek);
 }
 
-function businessHoursForStylist(stylistId: string): BusinessHour[] {
-  return buildStylistHoursFor(stylistId, demoBusinessHours, demoStylistHours).map((hour) => ({
-    id: hour.id,
+function businessHoursForStylist(stylistId: string, date?: string): BusinessHour[] {
+  if (!date) {
+    return buildStylistHoursFor(stylistId, demoBusinessHours, demoStylistHours).map((hour) => ({
+      id: hour.id,
+      dayOfWeek: hour.dayOfWeek,
+      opensAt: hour.opensAt,
+      closesAt: hour.closesAt,
+      isClosed: hour.isClosed
+    }));
+  }
+
+  const stylistOverrides = new Map(
+    demoStylistHours
+      .filter((hour) => hour.stylistId === stylistId)
+      .map((hour) => [hour.dayOfWeek, hour])
+  );
+
+  return demoBusinessHours
+    .map((businessHour) => {
+      const storeHour = applyBusinessHourException(businessHour, date);
+      const override = stylistOverrides.get(businessHour.dayOfWeek);
+
+      if (!override) return storeHour;
+
+      const opensAt = maxTime(storeHour.opensAt, override.opensAt);
+      const closesAt = minTime(storeHour.closesAt, override.closesAt);
+
+      return {
+        id: override.id,
+        dayOfWeek: businessHour.dayOfWeek,
+        opensAt,
+        closesAt,
+        isClosed: storeHour.isClosed || override.isClosed || opensAt >= closesAt
+      };
+    })
+    .sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+}
+
+function applyBusinessHourException(hour: BusinessHour, date: string): BusinessHour {
+  const exception = matchingDemoBusinessHourException(date);
+  if (!exception || hour.dayOfWeek !== dayOfWeekForDate(date)) {
+    return { ...hour };
+  }
+
+  return {
+    id: `${hour.id}-${exception.id}`,
     dayOfWeek: hour.dayOfWeek,
-    opensAt: hour.opensAt,
-    closesAt: hour.closesAt,
-    isClosed: hour.isClosed
-  }));
+    opensAt: exception.opensAt,
+    closesAt: exception.closesAt,
+    isClosed: exception.isClosed
+  };
+}
+
+function matchingDemoBusinessHourException(date: string): BusinessHourException | null {
+  return demoBusinessHourExceptions
+    .filter((exception) => exception.startsOn <= date && exception.endsOn >= date)
+    .sort((a, b) => {
+      const startsDelta = b.startsOn.localeCompare(a.startsOn);
+      if (startsDelta !== 0) return startsDelta;
+      return b.id.localeCompare(a.id);
+    })[0] ?? null;
+}
+
+function dayOfWeekForDate(date: string): number {
+  return new Date(`${date}T00:00:00.000Z`).getUTCDay();
+}
+
+function maxTime(a: string, b: string): string {
+  return a > b ? a : b;
+}
+
+function minTime(a: string, b: string): string {
+  return a < b ? a : b;
 }
 
 function assertDemoSlotAvailable({
@@ -1173,7 +1485,7 @@ function assertDemoSlotAvailable({
   const matchingSlot = deriveAvailableSlots({
     date,
     service,
-    businessHours: businessHoursForStylist(stylistId),
+    businessHours: businessHoursForStylist(stylistId, date),
     existingAppointments,
     salonTimeZone: demoSettings.timezone,
     slotIntervalMinutes: demoSettings.slotIntervalMinutes,
@@ -1229,6 +1541,12 @@ function byDisplayOrder(a: { displayOrder: number }, b: { displayOrder: number }
   return a.displayOrder - b.displayOrder;
 }
 
+function byExceptionStart(a: BusinessHourException, b: BusinessHourException): number {
+  const startsDelta = a.startsOn.localeCompare(b.startsOn);
+  if (startsDelta !== 0) return startsDelta;
+  return a.endsOn.localeCompare(b.endsOn);
+}
+
 function bySlotStartThenStylist(a: AvailableSlot, b: AvailableSlot): number {
   const timeDelta = new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
   if (timeDelta !== 0) return timeDelta;
@@ -1242,6 +1560,24 @@ function extensionFromFileName(fileName: string): string {
 
 function nextGalleryDisplayOrder(): number {
   return Math.max(0, ...demoGalleryPhotos.map((photo) => photo.displayOrder)) + 1;
+}
+
+function nextServiceDisplayOrder(): number {
+  return Math.max(0, ...demoServices.map((service) => service.displayOrder)) + 1;
+}
+
+async function nextSupabaseServiceDisplayOrder(): Promise<number> {
+  if (!supabase) return nextServiceDisplayOrder();
+
+  const { data, error } = await supabase
+    .from("services")
+    .select("display_order")
+    .order("display_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return Number(data?.display_order ?? 0) + 1;
 }
 
 async function nextSupabaseGalleryDisplayOrder(): Promise<number> {

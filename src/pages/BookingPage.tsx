@@ -23,7 +23,7 @@ import {
   nextBookableDates
 } from "../lib/data";
 import { useLanguage } from "../lib/use-language";
-import { getLocalizedServiceText, localeForLanguage } from "../lib/localization";
+import { getLocalizedServiceText, getLocalizedStylistText, localeForLanguage } from "../lib/localization";
 import type { AvailableSlot, Service, Stylist } from "../lib/types";
 
 type Step = "service" | "stylist" | "time" | "details";
@@ -167,19 +167,23 @@ export function BookingPage() {
                   }}
                 />
                 {stylistsLoading && <p>{t("booking.loadingStylists")}</p>}
-                {stylists.map((stylist) => (
-                  <StylistChoice
-                    key={stylist.id}
-                    selected={stylistId === stylist.id}
-                    name={stylist.name}
-                    bio={stylist.bio}
-                    specialties={stylist.specialties}
-                    onClick={() => {
-                      setStylistId(stylist.id);
-                      setSlot(null);
-                    }}
-                  />
-                ))}
+                {stylists.map((stylist) => {
+                  const stylistText = getLocalizedStylistText(stylist, language);
+
+                  return (
+                    <StylistChoice
+                      key={stylist.id}
+                      selected={stylistId === stylist.id}
+                      name={stylist.name}
+                      bio={stylistText.bio}
+                      specialties={stylistText.specialties}
+                      onClick={() => {
+                        setStylistId(stylist.id);
+                        setSlot(null);
+                      }}
+                    />
+                  );
+                })}
               </div>
               <FooterNav canContinue={Boolean(stylistId)} onBack={() => setStep("service")} onNext={() => setStep("time")} />
             </div>

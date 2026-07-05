@@ -40,6 +40,7 @@ describe("AppLayout", () => {
   it("replaces the public booking action with sign out on admin routes", () => {
     renderLayout("/admin/login");
 
+    expect(screen.getByText("Fancy Wave Beauty Salon")).toBeTruthy();
     expect(screen.queryByText("Book an appointment")).toBeNull();
     expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
   });

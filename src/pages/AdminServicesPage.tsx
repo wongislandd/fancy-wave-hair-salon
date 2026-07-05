@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Save, Scissors } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Save, Scissors, Trash2 } from "lucide-react";
 import { AdminShell } from "../components/AdminShell";
 import { serviceFormSchema, type ServiceFormValues } from "../lib/admin";
 import { formatPriceRange } from "../lib/booking";
-import { listAdminServices, listAdminStylists, saveService } from "../lib/data";
+import {
+  deleteService,
+  listAdminServices,
+  listAdminStylists,
+  saveService,
+  updateServiceOrder
+} from "../lib/data";
 import { useLanguage } from "../lib/use-language";
 import { getLocalizedServiceText, localeForLanguage } from "../lib/localization";
 
@@ -87,22 +93,54 @@ export function AdminServicesPage() {
     [services, stylists]
   );
 
+  const refreshServiceData = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["admin-services"] }),
+      queryClient.invalidateQueries({ queryKey: ["public-services"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin-stylists"] }),
+      queryClient.invalidateQueries({ queryKey: ["public-stylists"] })
+    ]);
+  };
+
   const saveMutation = useMutation({
     mutationFn: ({ values, id }: { values: ServiceFormValues; id?: string }) => saveService(values, id),
     onSuccess: async () => {
+      await refreshServiceData();
+      setFormError("");
+    }
+  });
+  const deleteMutation = useMutation({
+    mutationFn: (serviceId: string) => deleteService(serviceId),
+    onSuccess: async () => {
+      setSelectedId("");
+      setForm(blankServiceForm);
+      setFormError("");
+      await refreshServiceData();
+    }
+  });
+  const reorderMutation = useMutation({
+    mutationFn: updateServiceOrder,
+    onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["admin-services"] }),
-        queryClient.invalidateQueries({ queryKey: ["public-services"] }),
-        queryClient.invalidateQueries({ queryKey: ["admin-stylists"] }),
-        queryClient.invalidateQueries({ queryKey: ["public-stylists"] })
+        queryClient.invalidateQueries({ queryKey: ["public-services"] })
       ]);
-      setFormError("");
     }
   });
   const saveError = saveMutation.error
     ? saveMutation.error instanceof Error
       ? saveMutation.error.message
       : "Service could not be saved."
+    : "";
+  const reorderError = reorderMutation.error
+    ? reorderMutation.error instanceof Error
+      ? reorderMutation.error.message
+      : "Service order could not be saved."
+    : "";
+  const deleteError = deleteMutation.error
+    ? deleteMutation.error instanceof Error
+      ? deleteMutation.error.message
+      : "Service could not be deleted."
     : "";
 
   const handleSave = () => {
@@ -114,6 +152,30 @@ export function AdminServicesPage() {
 
     setFormError("");
     saveMutation.mutate({ values: parsed.data, id: selectedId || undefined });
+  };
+
+  const handleDelete = () => {
+    if (!selectedService) return;
+
+    const serviceName = getLocalizedServiceText(selectedService, language).name;
+    const confirmed = window.confirm(
+      t("admin.services.deleteConfirm", { name: serviceName })
+    );
+    if (!confirmed) return;
+
+    setFormError("");
+    deleteMutation.mutate(selectedService.id);
+  };
+
+  const moveService = (serviceId: string, direction: -1 | 1) => {
+    const currentIndex = services.findIndex((service) => service.id === serviceId);
+    const nextIndex = currentIndex + direction;
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= services.length) return;
+
+    const nextIds = services.map((service) => service.id);
+    const [movedId] = nextIds.splice(currentIndex, 1);
+    nextIds.splice(nextIndex, 0, movedId);
+    reorderMutation.mutate(nextIds);
   };
 
   return (
@@ -138,39 +200,68 @@ export function AdminServicesPage() {
 
           <div className="mt-5 space-y-2">
             {servicesQuery.isLoading && <p>{t("admin.services.loading")}</p>}
-            {services.map((service) => {
+            {services.map((service, index) => {
               const serviceText = getLocalizedServiceText(service, language);
 
               return (
-                <button
+                <article
                   key={service.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedId(service.id);
-                    setFormError("");
-                  }}
-                  className={`focus-ring block w-full rounded-2xl border p-4 text-left transition ${
+                  className={`grid grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-2xl border p-3 transition ${
                     selectedId === service.id
                       ? "border-wave-deep bg-wave-mint"
                       : "border-wave-deep/10 hover:border-wave-deep/35"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-bold">{serviceText.name}</p>
-                      <p className="mt-1 text-sm text-wave-ink/60">
-                        {service.durationMinutes} {t("common.min")} / {formatPriceRange(service, locale)}
-                      </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedId(service.id);
+                      setFormError("");
+                    }}
+                    className="focus-ring min-w-0 rounded-xl p-1 text-left"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-bold">{serviceText.name}</p>
+                        <p className="mt-1 text-sm text-wave-ink/60">
+                          {service.durationMinutes} {t("common.min")} / {formatPriceRange(service, locale)}
+                        </p>
+                      </div>
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        service.isActive ? "bg-wave-mint text-wave-deep" : "bg-wave-mint text-wave-ink/65"
+                      }`}>
+                        {service.isActive ? t("common.active") : t("common.hidden")}
+                      </span>
                     </div>
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      service.isActive ? "bg-wave-mint text-wave-deep" : "bg-wave-mint text-wave-ink/65"
-                    }`}>
-                      {service.isActive ? t("common.active") : t("common.hidden")}
-                    </span>
+                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      aria-label={t("admin.services.moveUp")}
+                      disabled={index === 0 || reorderMutation.isPending}
+                      onClick={() => moveService(service.id, -1)}
+                      className="focus-ring rounded-full border border-wave-deep/10 bg-white p-2 disabled:opacity-35"
+                    >
+                      <ArrowUp size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={t("admin.services.moveDown")}
+                      disabled={index === services.length - 1 || reorderMutation.isPending}
+                      onClick={() => moveService(service.id, 1)}
+                      className="focus-ring rounded-full border border-wave-deep/10 bg-white p-2 disabled:opacity-35"
+                    >
+                      <ArrowDown size={16} />
+                    </button>
                   </div>
-                </button>
+                </article>
               );
             })}
+            {reorderError && (
+              <p className="rounded-2xl bg-wave-deep/10 p-3 text-sm text-wave-deep">
+                {reorderError}
+              </p>
+            )}
           </div>
         </section>
 
@@ -315,21 +406,34 @@ export function AdminServicesPage() {
             </label>
           </div>
 
-          {(formError || saveError) && (
+          {(formError || saveError || deleteError) && (
             <p className="mt-4 rounded-2xl bg-wave-deep/10 p-3 text-sm text-wave-deep">
-              {formError || saveError}
+              {formError || saveError || deleteError}
             </p>
           )}
 
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saveMutation.isPending}
-            className="focus-ring mt-5 inline-flex items-center gap-2 rounded-full bg-wave-deep px-5 py-3 font-semibold text-white disabled:opacity-45"
-          >
-            <Save size={18} />
-            {saveMutation.isPending ? t("common.saving") : t("admin.services.save")}
-          </button>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saveMutation.isPending || deleteMutation.isPending}
+              className="focus-ring inline-flex items-center gap-2 rounded-full bg-wave-deep px-5 py-3 font-semibold text-white disabled:opacity-45"
+            >
+              <Save size={18} />
+              {saveMutation.isPending ? t("common.saving") : t("admin.services.save")}
+            </button>
+            {selectedService && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleteMutation.isPending || saveMutation.isPending}
+                className="focus-ring inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-5 py-3 font-semibold text-red-700 disabled:opacity-45"
+              >
+                <Trash2 size={18} />
+                {deleteMutation.isPending ? t("admin.services.deleting") : t("admin.services.delete")}
+              </button>
+            )}
+          </div>
         </section>
       </div>
 

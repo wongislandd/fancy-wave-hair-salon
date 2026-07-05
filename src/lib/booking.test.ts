@@ -6,7 +6,8 @@ import {
   deriveAvailableSlots,
   formatAppointmentRange,
   formatPriceRange,
-  isCustomerManageableStatus
+  isCustomerManageableStatus,
+  resolveBusinessHoursForDate
 } from "./booking";
 import type { Appointment, BusinessHour, Service } from "./types";
 
@@ -179,6 +180,50 @@ describe("booking domain helpers", () => {
       label: "9:00 AM"
     });
     expect(slots.at(-1)?.startsAt).toBe("2026-07-06T20:00:00.000Z");
+  });
+
+  it("applies date-specific closures and special hours", () => {
+    const closedSlots = deriveAvailableSlots({
+      date: "2026-07-06",
+      service: haircut,
+      businessHours: mondayHours,
+      specialHours: [
+        {
+          id: "holiday",
+          startsOn: "2026-07-06",
+          endsOn: "2026-07-06",
+          opensAt: "09:00",
+          closesAt: "17:00",
+          isClosed: true,
+          note: "Holiday"
+        }
+      ],
+      existingAppointments: [],
+      salonTimeZone: "UTC",
+      slotIntervalMinutes: 30,
+      stylistId: "stylist-1",
+      now: new Date("2026-07-05T12:00:00.000Z")
+    });
+
+    expect(closedSlots).toEqual([]);
+
+    const specialHours = resolveBusinessHoursForDate("2026-07-06", mondayHours, [
+      {
+        id: "short-day",
+        startsOn: "2026-07-06",
+        endsOn: "2026-07-07",
+        opensAt: "10:00",
+        closesAt: "12:00",
+        isClosed: false,
+        note: "Short day"
+      }
+    ]);
+
+    expect(specialHours).toMatchObject({
+      opensAt: "10:00",
+      closesAt: "12:00",
+      isClosed: false
+    });
   });
 
   it("validates customer booking details", () => {

@@ -179,7 +179,7 @@ Main tables:
 
 - `salon_settings`: salon name, time zone, slot interval, booking notice, cancellation cutoff.
 - `services`: bilingual service catalog with price, duration, active flag, and display order.
-- `stylists`: bookable staff profiles.
+- `stylists`: bilingual bookable staff profiles.
 - `stylist_services`: many-to-many mapping from stylists to services.
 - `business_hours`: weekly salon schedule.
 - `stylist_hours`: optional stylist overrides that fall back to salon hours.

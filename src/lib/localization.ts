@@ -1,4 +1,4 @@
-import type { Appointment, GalleryPhoto, ManageableBooking, Service } from "./types";
+import type { Appointment, GalleryPhoto, ManageableBooking, Service, Stylist } from "./types";
 
 export type Language = "en" | "zh";
 
@@ -44,6 +44,24 @@ export function getLocalizedGalleryPhotoText(
   };
 }
 
+export function getLocalizedStylistText(
+  stylist: Stylist,
+  language: Language
+): { bio: string; specialties: string[] } {
+  const legacyBio = clean(stylist.bio);
+  const englishBio = "bioEn" in stylist
+    ? clean(stylist.bioEn) || legacyBio
+    : legacyBio;
+  const chineseBio = clean(stylist.bioZh);
+  const englishSpecialties = normalizeList(stylist.specialtiesEn, stylist.specialties);
+  const chineseSpecialties = normalizeList(stylist.specialtiesZh);
+
+  return {
+    bio: pickLocalized(englishBio, chineseBio, language),
+    specialties: pickLocalizedList(englishSpecialties, chineseSpecialties, language)
+  };
+}
+
 export function getAppointmentServiceName(
   appointment: Appointment,
   language: Language
@@ -77,6 +95,23 @@ function pickLocalized(
 
   if (language === "zh") return chinese || english;
   return english || chinese;
+}
+
+function pickLocalizedList(
+  englishValues: string[],
+  chineseValues: string[],
+  language: Language
+): string[] {
+  if (language === "zh") return chineseValues.length > 0 ? chineseValues : englishValues;
+  return englishValues.length > 0 ? englishValues : chineseValues;
+}
+
+function normalizeList(
+  values: string[] | null | undefined,
+  fallback: string[] = []
+): string[] {
+  const source = values && values.length > 0 ? values : fallback;
+  return source.map((value) => value.trim()).filter(Boolean);
 }
 
 function clean(value: string | null | undefined): string {

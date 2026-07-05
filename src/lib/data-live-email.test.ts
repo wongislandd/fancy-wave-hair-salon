@@ -125,6 +125,69 @@ describe("live booking email notifications", () => {
     });
   });
 
+  it("soft-deletes live services and removes stylist assignments", async () => {
+    const updateEq = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn(() => ({ eq: updateEq }));
+    const deleteEq = vi.fn().mockResolvedValue({ error: null });
+    const deleteAssignments = vi.fn(() => ({ eq: deleteEq }));
+    const from = vi.fn((table: string) => {
+      if (table === "services") return { update };
+      if (table === "stylist_services") return { delete: deleteAssignments };
+      throw new Error(`Unexpected table ${table}`);
+    });
+
+    vi.doMock("./supabase", () => ({
+      isSupabaseConfigured: true,
+      supabase: { from }
+    }));
+
+    const { deleteService } = await import("./data");
+
+    await deleteService("service-1");
+
+    expect(update).toHaveBeenCalledWith({
+      deleted_at: expect.any(String),
+      is_active: false
+    });
+    expect(updateEq).toHaveBeenCalledWith("id", "service-1");
+    expect(deleteAssignments).toHaveBeenCalled();
+    expect(deleteEq).toHaveBeenCalledWith("service_id", "service-1");
+  });
+
+  it("soft-deletes live stylists and removes assignments and custom hours", async () => {
+    const updateEq = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn(() => ({ eq: updateEq }));
+    const serviceAssignmentDeleteEq = vi.fn().mockResolvedValue({ error: null });
+    const deleteServiceAssignments = vi.fn(() => ({ eq: serviceAssignmentDeleteEq }));
+    const hoursDeleteEq = vi.fn().mockResolvedValue({ error: null });
+    const deleteHours = vi.fn(() => ({ eq: hoursDeleteEq }));
+    const from = vi.fn((table: string) => {
+      if (table === "stylists") return { update };
+      if (table === "stylist_services") return { delete: deleteServiceAssignments };
+      if (table === "stylist_hours") return { delete: deleteHours };
+      throw new Error(`Unexpected table ${table}`);
+    });
+
+    vi.doMock("./supabase", () => ({
+      isSupabaseConfigured: true,
+      supabase: { from }
+    }));
+
+    const { deleteStylist } = await import("./data");
+
+    await deleteStylist("stylist-1");
+
+    expect(update).toHaveBeenCalledWith({
+      deleted_at: expect.any(String),
+      is_active: false
+    });
+    expect(updateEq).toHaveBeenCalledWith("id", "stylist-1");
+    expect(deleteServiceAssignments).toHaveBeenCalled();
+    expect(serviceAssignmentDeleteEq).toHaveBeenCalledWith("stylist_id", "stylist-1");
+    expect(deleteHours).toHaveBeenCalled();
+    expect(hoursDeleteEq).toHaveBeenCalledWith("stylist_id", "stylist-1");
+  });
+
   it("queues and sends a reschedule notice when staff moves a live appointment", async () => {
     const existingAppointment = {
       id: "appt-1",

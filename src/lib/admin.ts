@@ -57,17 +57,37 @@ export const serviceFormSchema = z.object({
 
 export type ServiceFormValues = z.infer<typeof serviceFormSchema>;
 
+const commaSeparatedListSchema = z.string().transform((value) =>
+  value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+);
+
 export const stylistFormSchema = z.object({
   name: z.string().trim().min(2, "Name is required"),
-  bio: z.string().trim().min(10, "Bio is required"),
-  specialties: z.string().transform((value) =>
-    value
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean)
-  ),
+  bioEn: z.string().trim(),
+  bioZh: z.string().trim(),
+  specialtiesEn: commaSeparatedListSchema,
+  specialtiesZh: commaSeparatedListSchema,
   serviceIds: z.array(z.string()).min(1, "Assign at least one service"),
   isActive: z.boolean()
+}).superRefine((values, context) => {
+  if (!values.bioEn && !values.bioZh) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["bioEn"],
+      message: "Enter an English or Chinese stylist bio / \u8bf7\u8f93\u5165\u82f1\u6587\u6216\u4e2d\u6587\u53d1\u578b\u5e08\u7b80\u4ecb"
+    });
+  }
+
+  if (values.specialtiesEn.length === 0 && values.specialtiesZh.length === 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["specialtiesEn"],
+      message: "Enter English or Chinese stylist specialties / \u8bf7\u8f93\u5165\u82f1\u6587\u6216\u4e2d\u6587\u53d1\u578b\u5e08\u4e13\u957f"
+    });
+  }
 });
 
 export type StylistFormValues = z.infer<typeof stylistFormSchema>;

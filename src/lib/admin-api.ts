@@ -4,8 +4,10 @@ import type { AppointmentConfirmation } from "./types";
 export type SaveStylistProfileRequest = {
   id?: string;
   name: string;
-  bio: string;
-  specialties: string[];
+  bioEn: string;
+  bioZh: string;
+  specialtiesEn: string[];
+  specialtiesZh: string[];
   serviceIds: string[];
   isActive: boolean;
 };
@@ -28,8 +30,10 @@ export async function saveStylistProfile(
   const { data, error } = await client.rpc("save_stylist_profile", {
     p_stylist_id: request.id ?? null,
     p_name: request.name,
-    p_bio: request.bio,
-    p_specialties: request.specialties,
+    p_bio_en: request.bioEn,
+    p_bio_zh: request.bioZh,
+    p_specialties_en: request.specialtiesEn,
+    p_specialties_zh: request.specialtiesZh,
     p_service_ids: request.serviceIds,
     p_is_active: request.isActive
   });

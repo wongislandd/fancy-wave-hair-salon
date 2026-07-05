@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LanguageProvider } from "../lib/i18n";
-import { saveService } from "../lib/data";
+import { deleteService, saveService, updateServiceOrder } from "../lib/data";
 import { AdminServicesPage } from "./AdminServicesPage";
 import type { Service, Stylist } from "../lib/types";
 
@@ -75,10 +75,12 @@ const stylists: Stylist[] = [
 ];
 
 vi.mock("../lib/data", () => ({
+  deleteService: vi.fn(),
   isStaffSignedIn: vi.fn(async () => true),
   listAdminServices: vi.fn(async () => services),
   listAdminStylists: vi.fn(async () => stylists),
-  saveService: vi.fn()
+  saveService: vi.fn(),
+  updateServiceOrder: vi.fn()
 }));
 
 function renderAdminServicesPage() {
@@ -100,7 +102,13 @@ function renderAdminServicesPage() {
 describe("AdminServicesPage", () => {
   beforeEach(() => {
     window.localStorage.setItem("fancy-wave-language", "en");
+    vi.mocked(deleteService).mockReset();
     vi.mocked(saveService).mockReset();
+    vi.mocked(updateServiceOrder).mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("shows exact, bounded range, and plus prices in stylist coverage", async () => {
@@ -124,5 +132,33 @@ describe("AdminServicesPage", () => {
     await user.click(screen.getByRole("button", { name: "Save service" }));
 
     expect(await screen.findByText("column services.price_max_cents does not exist")).toBeTruthy();
+  });
+
+  it("saves the admin service order when a service is moved", async () => {
+    const user = userEvent.setup();
+
+    renderAdminServicesPage();
+
+    await screen.findByRole("heading", { name: "Stylist coverage" });
+    await user.click(screen.getAllByRole("button", { name: "Move service down" })[0]);
+
+    expect(vi.mocked(updateServiceOrder).mock.calls[0][0]).toEqual([
+      "service-range",
+      "service-exact",
+      "service-open"
+    ]);
+  });
+
+  it("deletes a selected service after staff confirmation", async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValueOnce(true);
+
+    renderAdminServicesPage();
+
+    await user.click(await screen.findByRole("button", { name: /Gloss Treatment 45 min/ }));
+    await user.click(screen.getByRole("button", { name: "Delete service" }));
+
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining("Gloss Treatment"));
+    await waitFor(() => expect(deleteService).toHaveBeenCalledWith("service-range"));
   });
 });

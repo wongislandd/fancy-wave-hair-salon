@@ -92,9 +92,12 @@ describe("LandingPage", () => {
     renderLandingPage();
 
     expect(
-      screen.getByRole("heading", { name: "Fresh cuts, color, and blowouts." })
+      screen.getByRole("heading", { name: "Premier haircuts in Flushing, Queens." })
     ).toBeTruthy();
+    expect(screen.getAllByText("Fancy Wave Beauty Salon").length).toBeGreaterThan(0);
     expect(screen.getAllByText("135-45 Roosevelt Ave, Flushing, NY 11354").length).toBeGreaterThan(0);
+    const map = screen.getByTitle("Map to Fancy Wave Beauty Salon in Flushing");
+    expect(map.getAttribute("src")).toContain("Fancy%20Wave%20Beauty%20Salon");
     expect(await screen.findByText("Signature Haircut")).toBeTruthy();
     expect(screen.getByText("$65")).toBeTruthy();
     expect(screen.getByText("$28-$60")).toBeTruthy();

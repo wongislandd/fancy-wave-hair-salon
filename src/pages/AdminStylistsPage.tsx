@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, Plus, Save, Scissors, UserRound, UsersRound } from "lucide-react";
+import { Clock, Plus, Save, Scissors, Trash2, UserRound, UsersRound } from "lucide-react";
 import { AdminShell } from "../components/AdminShell";
 import { stylistFormSchema, type StylistFormValues } from "../lib/admin";
 import { formatPriceRange } from "../lib/booking";
 import {
+  deleteStylist,
   listAdminServices,
   listAdminStylists,
   listStylistHours,
@@ -13,13 +14,15 @@ import {
   updateStylistHour
 } from "../lib/data";
 import { useLanguage } from "../lib/use-language";
-import { getLocalizedServiceText, localeForLanguage } from "../lib/localization";
+import { getLocalizedServiceText, getLocalizedStylistText, localeForLanguage } from "../lib/localization";
 import type { StylistHour } from "../lib/types";
 
 type StylistFormState = {
   name: string;
-  bio: string;
-  specialties: string;
+  bioEn: string;
+  bioZh: string;
+  specialtiesEn: string;
+  specialtiesZh: string;
   serviceIds: string[];
   isActive: boolean;
 };
@@ -31,8 +34,10 @@ type StylistHourPatch = Pick<
 
 const blankStylistForm: StylistFormState = {
   name: "",
-  bio: "",
-  specialties: "",
+  bioEn: "",
+  bioZh: "",
+  specialtiesEn: "",
+  specialtiesZh: "",
   serviceIds: [],
   isActive: true
 };
@@ -74,8 +79,10 @@ export function AdminStylistsPage() {
 
     setForm({
       name: selectedStylist.name,
-      bio: selectedStylist.bio,
-      specialties: selectedStylist.specialties.join(", "),
+      bioEn: selectedStylist.bioEn ?? selectedStylist.bio,
+      bioZh: selectedStylist.bioZh ?? "",
+      specialtiesEn: (selectedStylist.specialtiesEn ?? selectedStylist.specialties).join(", "),
+      specialtiesZh: (selectedStylist.specialtiesZh ?? []).join(", "),
       serviceIds: selectedStylist.serviceIds,
       isActive: selectedStylist.isActive
     });
@@ -91,6 +98,21 @@ export function AdminStylistsPage() {
         queryClient.invalidateQueries({ queryKey: ["admin-stylists"] }),
         queryClient.invalidateQueries({ queryKey: ["public-stylists"] }),
         queryClient.invalidateQueries({ queryKey: ["available-slots"] })
+      ]);
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (stylistId: string) => deleteStylist(stylistId),
+    onSuccess: async () => {
+      setSelectedId("");
+      setForm(blankStylistForm);
+      setFormError("");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-stylists"] }),
+        queryClient.invalidateQueries({ queryKey: ["public-stylists"] }),
+        queryClient.invalidateQueries({ queryKey: ["available-slots"] }),
+        queryClient.invalidateQueries({ queryKey: ["stylist-hours"] })
       ]);
     }
   });
@@ -114,6 +136,18 @@ export function AdminStylistsPage() {
     }
 
     saveMutation.mutate({ values: parsed.data, id: selectedId || undefined });
+  };
+
+  const handleDelete = () => {
+    if (!selectedStylist) return;
+
+    const confirmed = window.confirm(
+      t("admin.stylists.deleteConfirm", { name: selectedStylist.name })
+    );
+    if (!confirmed) return;
+
+    setFormError("");
+    deleteMutation.mutate(selectedStylist.id);
   };
 
   const toggleService = (serviceId: string) => {
@@ -166,39 +200,45 @@ export function AdminStylistsPage() {
 
           <div className="mt-5 space-y-2">
             {stylistsQuery.isLoading && <p>{t("admin.stylists.loading")}</p>}
-            {stylists.map((stylist) => (
-              <button
-                key={stylist.id}
-                type="button"
-                onClick={() => {
-                  setSelectedId(stylist.id);
-                  setFormError("");
-                }}
-                className={`focus-ring block w-full rounded-2xl border p-4 text-left transition ${
-                  selectedId === stylist.id
-                    ? "border-wave-deep bg-wave-mint"
-                    : "border-wave-deep/10 hover:border-wave-deep/35"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-bold">{stylist.name}</p>
-                    <p className="mt-1 text-sm text-wave-ink/60">
-                      {t("admin.stylists.serviceCount", { count: stylist.serviceIds.length })} / {stylist.specialties.join(", ")}
-                    </p>
+            {stylists.map((stylist) => {
+              const stylistText = getLocalizedStylistText(stylist, language);
+              const specialties = stylistText.specialties.join(", ");
+
+              return (
+                <button
+                  key={stylist.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedId(stylist.id);
+                    setFormError("");
+                  }}
+                  className={`focus-ring block w-full rounded-2xl border p-4 text-left transition ${
+                    selectedId === stylist.id
+                      ? "border-wave-deep bg-wave-mint"
+                      : "border-wave-deep/10 hover:border-wave-deep/35"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-bold">{stylist.name}</p>
+                      <p className="mt-1 text-sm text-wave-ink/60">
+                        {t("admin.stylists.serviceCount", { count: stylist.serviceIds.length })}
+                        {specialties ? ` / ${specialties}` : ""}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        stylist.isActive
+                          ? "bg-wave-mint text-wave-deep"
+                          : "bg-wave-mint text-wave-ink/65"
+                      }`}
+                    >
+                      {stylist.isActive ? t("common.active") : t("common.hidden")}
+                    </span>
                   </div>
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      stylist.isActive
-                        ? "bg-wave-mint text-wave-deep"
-                        : "bg-wave-mint text-wave-ink/65"
-                    }`}
-                  >
-                    {stylist.isActive ? t("common.active") : t("common.hidden")}
-                  </span>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </section>
 
@@ -228,22 +268,51 @@ export function AdminStylistsPage() {
                 placeholder="Nina Park"
               />
             </Field>
-            <Field label={t("admin.stylists.bio")}>
-              <textarea
-                className="focus-ring min-h-28 w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
-                value={form.bio}
-                onChange={(event) => setForm({ ...form, bio: event.target.value })}
-                placeholder="Precision cuts, soft layers, and lived-in styling."
-              />
-            </Field>
-            <Field label={t("admin.stylists.specialties")}>
-              <input
-                className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
-                value={form.specialties}
-                onChange={(event) => setForm({ ...form, specialties: event.target.value })}
-                placeholder="Cuts, Layers, Blowouts"
-              />
-            </Field>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <section className="rounded-2xl border border-wave-deep/10 p-4">
+                <h3 className="font-black">{t("admin.stylists.english")}</h3>
+                <div className="mt-4 grid gap-4">
+                  <Field label={t("admin.stylists.bioEn")}>
+                    <textarea
+                      className="focus-ring min-h-28 w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
+                      value={form.bioEn}
+                      onChange={(event) => setForm({ ...form, bioEn: event.target.value })}
+                      placeholder="Precision cuts, soft layers, and lived-in styling."
+                    />
+                  </Field>
+                  <Field label={t("admin.stylists.specialtiesEn")}>
+                    <input
+                      className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
+                      value={form.specialtiesEn}
+                      onChange={(event) => setForm({ ...form, specialtiesEn: event.target.value })}
+                      placeholder="Cuts, Layers, Blowouts"
+                    />
+                  </Field>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-wave-deep/10 p-4">
+                <h3 className="font-black">{t("admin.stylists.chinese")}</h3>
+                <div className="mt-4 grid gap-4">
+                  <Field label={t("admin.stylists.bioZh")}>
+                    <textarea
+                      className="focus-ring min-h-28 w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
+                      value={form.bioZh}
+                      onChange={(event) => setForm({ ...form, bioZh: event.target.value })}
+                      placeholder="\u7cbe\u51c6\u526a\u53d1\u3001\u67d4\u548c\u5c42\u6b21\u548c\u81ea\u7136\u9020\u578b"
+                    />
+                  </Field>
+                  <Field label={t("admin.stylists.specialtiesZh")}>
+                    <input
+                      className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
+                      value={form.specialtiesZh}
+                      onChange={(event) => setForm({ ...form, specialtiesZh: event.target.value })}
+                      placeholder="\u526a\u53d1, \u5c42\u6b21, \u5439\u98ce\u9020\u578b"
+                    />
+                  </Field>
+                </div>
+              </section>
+            </div>
 
             <div>
               <div className="mb-2 flex items-center justify-between gap-3">
@@ -302,16 +371,34 @@ export function AdminStylistsPage() {
               {saveMutation.error.message}
             </p>
           )}
+          {deleteMutation.error && (
+            <p className="mt-4 rounded-2xl bg-wave-deep/10 p-3 text-sm text-wave-deep">
+              {deleteMutation.error.message}
+            </p>
+          )}
 
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saveMutation.isPending}
-            className="focus-ring mt-5 inline-flex items-center gap-2 rounded-full bg-wave-deep px-5 py-3 font-semibold text-white disabled:opacity-45"
-          >
-            <Save size={18} />
-            {saveMutation.isPending ? t("common.saving") : t("admin.stylists.save")}
-          </button>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saveMutation.isPending || deleteMutation.isPending}
+              className="focus-ring inline-flex items-center gap-2 rounded-full bg-wave-deep px-5 py-3 font-semibold text-white disabled:opacity-45"
+            >
+              <Save size={18} />
+              {saveMutation.isPending ? t("common.saving") : t("admin.stylists.save")}
+            </button>
+            {selectedStylist && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleteMutation.isPending || saveMutation.isPending}
+                className="focus-ring inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-5 py-3 font-semibold text-red-700 disabled:opacity-45"
+              >
+                <Trash2 size={18} />
+                {deleteMutation.isPending ? t("admin.stylists.deleting") : t("admin.stylists.delete")}
+              </button>
+            )}
+          </div>
         </section>
       </div>
 

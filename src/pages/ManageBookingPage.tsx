@@ -25,6 +25,7 @@ import {
   localeForLanguage
 } from "../lib/localization";
 import type { AvailableSlot, Service, Stylist } from "../lib/types";
+import { salonName } from "../lib/salon";
 
 export function ManageBookingPage({ confirmed = false }: { confirmed?: boolean }) {
   const { language, t } = useLanguage();
@@ -229,7 +230,7 @@ function PageShell({
   return (
     <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <p className="text-sm font-semibold uppercase tracking-wide text-wave-deep">Fancy Wave Hair Salon (Flushing)</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-wave-deep">{salonName}</p>
         <h1 className="mt-2 text-3xl font-black sm:text-4xl">{title}</h1>
         {subtitle && <p className="mt-3 max-w-2xl text-base font-medium text-wave-ink/80">{subtitle}</p>}
       </div>

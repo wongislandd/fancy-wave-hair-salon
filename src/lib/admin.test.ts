@@ -227,13 +227,16 @@ describe("admin helpers", () => {
   it("validates stylist profiles with assigned services and parsed specialties", () => {
     const stylist = stylistFormSchema.parse({
       name: "Nina Park",
-      bio: "Precision cuts, soft layers, and lived-in styling.",
-      specialties: "Cuts, Layers, Blowouts",
+      bioEn: "Precision cuts, soft layers, and lived-in styling.",
+      bioZh: "\u7cbe\u51c6\u526a\u53d1\u3001\u67d4\u548c\u5c42\u6b21\u548c\u81ea\u7136\u9020\u578b\u3002",
+      specialtiesEn: "Cuts, Layers, Blowouts",
+      specialtiesZh: "\u526a\u53d1, \u5c42\u6b21, \u5439\u98ce\u9020\u578b",
       serviceIds: ["service-haircut", "service-blowout"],
       isActive: true
     });
 
-    expect(stylist.specialties).toEqual(["Cuts", "Layers", "Blowouts"]);
+    expect(stylist.specialtiesEn).toEqual(["Cuts", "Layers", "Blowouts"]);
+    expect(stylist.specialtiesZh).toEqual(["\u526a\u53d1", "\u5c42\u6b21", "\u5439\u98ce\u9020\u578b"]);
     expect(stylist.serviceIds).toEqual(["service-haircut", "service-blowout"]);
   });
 

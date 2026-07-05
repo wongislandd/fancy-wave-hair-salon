@@ -99,15 +99,63 @@ on conflict (id) do update set
   is_active = excluded.is_active,
   display_order = excluded.display_order;
 
-insert into public.stylists (id, name, bio, specialties, is_active, display_order)
+insert into public.stylists (
+  id,
+  name,
+  bio,
+  bio_en,
+  bio_zh,
+  specialties,
+  specialties_en,
+  specialties_zh,
+  is_active,
+  display_order
+)
 values
-  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Nina Park', 'Precision cuts, soft layers, and lived-in styling.', array['Cuts', 'Layers', 'Blowouts'], true, 1),
-  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Theo Brooks', 'Gloss, dimensional color, and healthy shine treatments.', array['Gloss', 'Color', 'Treatments'], true, 2),
-  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'Mara Lee', 'Full color transformations and polished event styling.', array['Full Color', 'Styling'], true, 3)
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    'Nina Park',
+    'Precision cuts, soft layers, and lived-in styling.',
+    'Precision cuts, soft layers, and lived-in styling.',
+    U&'\7CBE\51C6\526A\53D1\3001\67D4\548C\5C42\6B21\548C\81EA\7136\9020\578B\3002',
+    array['Cuts', 'Layers', 'Blowouts'],
+    array['Cuts', 'Layers', 'Blowouts'],
+    array[U&'\526A\53D1', U&'\5C42\6B21', U&'\5439\98CE\9020\578B'],
+    true,
+    1
+  ),
+  (
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    'Theo Brooks',
+    'Gloss, dimensional color, and healthy shine treatments.',
+    'Gloss, dimensional color, and healthy shine treatments.',
+    U&'\4E13\6CE8\4EAE\6CFD\3001\7ACB\4F53\67D3\53D1\548C\5065\5EB7\5149\6CFD\62A4\7406\3002',
+    array['Gloss', 'Color', 'Treatments'],
+    array['Gloss', 'Color', 'Treatments'],
+    array[U&'\4EAE\6CFD', U&'\67D3\53D1', U&'\62A4\7406'],
+    true,
+    2
+  ),
+  (
+    'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    'Mara Lee',
+    'Full color transformations and polished event styling.',
+    'Full color transformations and polished event styling.',
+    U&'\64C5\957F\5168\5934\67D3\53D1\8F6C\53D8\548C\7CBE\81F4\6D3B\52A8\9020\578B\3002',
+    array['Full Color', 'Styling'],
+    array['Full Color', 'Styling'],
+    array[U&'\5168\5934\67D3\53D1', U&'\9020\578B'],
+    true,
+    3
+  )
 on conflict (id) do update set
   name = excluded.name,
   bio = excluded.bio,
+  bio_en = excluded.bio_en,
+  bio_zh = excluded.bio_zh,
   specialties = excluded.specialties,
+  specialties_en = excluded.specialties_en,
+  specialties_zh = excluded.specialties_zh,
   is_active = excluded.is_active,
   display_order = excluded.display_order;
 

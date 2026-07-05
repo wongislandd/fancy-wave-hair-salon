@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { signOutStaff } from "../lib/data";
 import { useLanguage } from "../lib/use-language";
 import type { Language } from "../lib/localization";
+import { salonName } from "../lib/salon";
 
 const languageOptions: Array<{ id: Language; label: string }> = [
   { id: "zh", label: "中文" },
@@ -37,7 +38,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 <Scissors size={18} />
               </span>
               <span className="max-w-28 text-[13px] leading-tight sm:max-w-none sm:text-base">
-                Fancy Wave Hair Salon (Flushing)
+                {salonName}
               </span>
             </Link>
             {isAdminRoute && (

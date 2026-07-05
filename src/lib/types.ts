@@ -19,7 +19,11 @@ export interface Service {
 export interface Stylist {
   id: string;
   name: string;
+  bioEn?: string;
+  bioZh?: string;
   bio: string;
+  specialtiesEn?: string[];
+  specialtiesZh?: string[];
   specialties: string[];
   serviceIds: string[];
   isActive: boolean;
@@ -32,6 +36,16 @@ export interface BusinessHour {
   opensAt: string;
   closesAt: string;
   isClosed: boolean;
+}
+
+export interface BusinessHourException {
+  id: string;
+  startsOn: string;
+  endsOn: string;
+  opensAt: string;
+  closesAt: string;
+  isClosed: boolean;
+  note?: string | null;
 }
 
 export interface StylistHour {
