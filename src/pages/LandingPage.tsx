@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { GalleryCarousel } from "../components/GalleryCarousel";
 import { listPublicGalleryPhotos, listPublicServices } from "../lib/data";
-import { formatPrice } from "../lib/booking";
+import { formatPriceRange } from "../lib/booking";
 import { useLanguage } from "../lib/use-language";
 import { getLocalizedGalleryPhotoText, getLocalizedServiceText, localeForLanguage } from "../lib/localization";
 
@@ -87,7 +87,7 @@ export function LandingPage() {
                 <p className="mt-2 min-h-14 text-sm leading-6 text-wave-ink/65">{serviceText.description}</p>
                 <div className="mt-5 flex items-center justify-between text-sm font-semibold">
                   <span>{service.durationMinutes} {t("common.min")}</span>
-                  <span>{formatPrice(service.priceCents, locale)}</span>
+                  <span>{formatPriceRange(service, locale)}</span>
                 </div>
               </article>
             );

@@ -43,6 +43,29 @@ export function formatPrice(priceCents: number, locale = "en-US"): string {
   }).format(priceCents / 100);
 }
 
+export type ServicePriceRange = {
+  priceCents: number;
+  priceMaxCents?: number | null;
+  priceIsStartingAt?: boolean;
+};
+
+export function formatPriceRange(price: ServicePriceRange, locale = "en-US"): string {
+  const formattedBase = formatPrice(price.priceCents, locale);
+
+  if (price.priceIsStartingAt) {
+    return `${formattedBase}+`;
+  }
+
+  if (
+    typeof price.priceMaxCents === "number" &&
+    price.priceMaxCents > price.priceCents
+  ) {
+    return `${formattedBase}-${formatPrice(price.priceMaxCents, locale)}`;
+  }
+
+  return formattedBase;
+}
+
 export function formatAppointmentRange(
   startsAt: string,
   endsAt: string,

@@ -196,14 +196,12 @@ Key files:
 
 Current behavior:
 
-- Default language is Chinese.
-- Language preference is stored in `localStorage`.
+- Saved language preference in `localStorage` wins.
+- Without a saved preference, the app checks browser language metadata from `navigator.languages` / `navigator.language`.
+- If no supported language can be inferred, the default language is English.
+- The provider updates `document.documentElement.lang` when the app language changes.
 - Service records have English and Chinese fields.
 - Appointment records store English and Chinese service-name snapshots.
-
-Polish issue:
-
-- `index.html` remains `lang="en"` and the language provider does not update `document.documentElement.lang`. That should be fixed for accessibility and SEO.
 
 ## Testing Strategy
 
@@ -229,7 +227,7 @@ npm.cmd audit --omit=dev
 
 Results:
 
-- Tests: 66 passed across 17 files.
+- Tests: 71 passed across 18 files.
 - Lint: passed.
 - Build: passed.
 - Audit: 0 production vulnerabilities.
@@ -314,7 +312,6 @@ Do not change only TypeScript or only SQL. The app intentionally has two backend
 | No e2e booking lifecycle test | Medium | Unit tests can miss route/query/UI integration bugs | Add one browser test for book, manage, cancel, admin visibility. |
 | Large JS bundle | Low/Medium | Slower public load path | Lazy-load admin routes and heavier pages. |
 | Sign-out visible on login route | Low | Confusing admin UX | Treat `/admin/login` separately in `AppLayout`. |
-| Static document language | Low | Accessibility and SEO mismatch | Update `<html lang>` when language changes. |
 | Real email missing | Medium for production | Customers do not receive actual confirmations | Add Edge Function/provider. |
 | Public gallery bucket | Low if intentional | Uploaded images are public | Only upload public marketing/gallery assets. |
 | Time-zone settings not fully dynamic in frontend | Low now, higher if settings become editable | UI helper dates assume current demo settings | Load salon settings through the data layer if settings become configurable. |

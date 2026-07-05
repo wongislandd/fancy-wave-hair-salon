@@ -78,4 +78,124 @@ describe("live booking email notifications", () => {
       }
     });
   });
+
+  it("queues and sends a cancellation notice when staff cancels a live appointment", async () => {
+    const updateEq = vi.fn(() => ({
+      select: vi.fn(() => ({
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: "appt-1",
+            booking_reference: "FW-123ABC",
+            customer_email: "maya@example.com"
+          },
+          error: null
+        })
+      }))
+    }));
+    const update = vi.fn(() => ({ eq: updateEq }));
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const from = vi.fn((table: string) => {
+      if (table === "appointments") return { update };
+      if (table === "email_logs") return { insert };
+      throw new Error(`Unexpected table ${table}`);
+    });
+    const invoke = vi.fn().mockResolvedValue({ data: { ok: true }, error: null });
+
+    vi.doMock("./supabase", () => ({
+      isSupabaseConfigured: true,
+      supabase: { from, functions: { invoke } }
+    }));
+
+    const { cancelAppointmentAsStaff } = await import("./data");
+
+    await cancelAppointmentAsStaff("appt-1");
+
+    expect(insert).toHaveBeenCalledWith({
+      appointment_id: "appt-1",
+      kind: "booking_cancelled",
+      recipient_email: "maya@example.com",
+      subject: "Your Fancy Wave appointment was cancelled",
+      body: "Your booking reference FW-123ABC has been cancelled by the salon."
+    });
+    expect(invoke).toHaveBeenCalledWith("send-booking-email", {
+      body: {
+        appointmentId: "appt-1",
+        kind: "booking_cancelled"
+      }
+    });
+  });
+
+  it("queues and sends a reschedule notice when staff moves a live appointment", async () => {
+    const existingAppointment = {
+      id: "appt-1",
+      booking_reference: "FW-123ABC",
+      customer_email: "maya@example.com",
+      service_duration_minutes_snapshot: 60,
+      starts_at: "2026-07-06T14:00:00.000Z"
+    };
+    const selectSingle = vi.fn().mockResolvedValue({
+      data: existingAppointment,
+      error: null
+    });
+    const selectEq = vi.fn(() => ({ single: selectSingle }));
+    const updateSingle = vi.fn().mockResolvedValue({
+      data: {
+        id: "appt-1",
+        booking_reference: "FW-123ABC",
+        customer_email: "maya@example.com"
+      },
+      error: null
+    });
+    const updateSelect = vi.fn(() => ({ single: updateSingle }));
+    const updateEq = vi.fn(() => ({ select: updateSelect }));
+    const update = vi.fn(() => ({ eq: updateEq }));
+    const appointmentsSelect = vi.fn(() => ({ eq: selectEq }));
+    const emailInsert = vi.fn().mockResolvedValue({ error: null });
+    const eventInsert = vi.fn().mockResolvedValue({ error: null });
+    const from = vi.fn((table: string) => {
+      if (table === "appointments") {
+        return { select: appointmentsSelect, update };
+      }
+      if (table === "email_logs") return { insert: emailInsert };
+      if (table === "appointment_events") return { insert: eventInsert };
+      throw new Error(`Unexpected table ${table}`);
+    });
+    const invoke = vi.fn().mockResolvedValue({ data: { ok: true }, error: null });
+
+    vi.doMock("./supabase", () => ({
+      isSupabaseConfigured: true,
+      supabase: { from, functions: { invoke } }
+    }));
+
+    const { rescheduleAppointmentAsStaff } = await import("./data");
+
+    await rescheduleAppointmentAsStaff("appt-1", "2026-07-07T14:00:00.000Z");
+
+    expect(update).toHaveBeenCalledWith({
+      starts_at: "2026-07-07T14:00:00.000Z",
+      ends_at: "2026-07-07T15:00:00.000Z"
+    });
+    expect(eventInsert).toHaveBeenCalledWith({
+      appointment_id: "appt-1",
+      event_type: "rescheduled",
+      actor_type: "staff",
+      metadata: {
+        previous_starts_at: "2026-07-06T14:00:00.000Z",
+        new_starts_at: "2026-07-07T14:00:00.000Z"
+      }
+    });
+    expect(emailInsert).toHaveBeenCalledWith({
+      appointment_id: "appt-1",
+      kind: "booking_rescheduled",
+      recipient_email: "maya@example.com",
+      subject: "Your Fancy Wave appointment was moved",
+      body: "Your booking reference FW-123ABC has been rescheduled by the salon."
+    });
+    expect(invoke).toHaveBeenCalledWith("send-booking-email", {
+      body: {
+        appointmentId: "appt-1",
+        kind: "booking_rescheduled"
+      }
+    });
+  });
 });

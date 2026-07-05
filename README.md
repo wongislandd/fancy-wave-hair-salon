@@ -39,7 +39,7 @@ npm audit --omit=dev
 
 Current verification result from the handoff review:
 
-- `npm.cmd test -- --run`: 66 tests passed across 17 files.
+- `npm.cmd test -- --run`: 71 tests passed across 18 files.
 - `npm.cmd run lint`: passed.
 - `npm.cmd run build`: passed. Vite warns that the main JS chunk is larger than 500 kB.
 - `npm.cmd audit --omit=dev`: found 0 production vulnerabilities.
@@ -218,7 +218,6 @@ Main handoff risks:
 - There are good unit/component tests, but no end-to-end test that books, reschedules, cancels, and verifies admin state.
 - The production build is currently one large app chunk. Route-level code splitting would lighten the public path.
 - `AppLayout` shows a sign-out button on `/admin/login` because that route starts with `/admin`.
-- The app defaults to Chinese, but `index.html` is static `lang="en"` and the language provider does not update the document language.
 - If salon settings become editable, the frontend should stop assuming the demo `America/New_York` settings in helper functions.
 
 ## Cloudflare Pages
@@ -249,12 +248,11 @@ Because this is a single-page app, configure fallback routing to serve `index.ht
 1. Split `src/lib/data.ts` into smaller modules: public catalog, appointments, admin, gallery, mappers, and demo repository.
 2. Add one Playwright or Cypress happy-path test for booking, rescheduling, cancellation, and staff visibility.
 3. Fix admin login polish so the global header does not show `Sign out` on `/admin/login`.
-4. Update document language when the app language changes.
-5. Add route-level lazy loading for admin screens and the gallery/admin-heavy surfaces.
-6. Add real email delivery through a Supabase Edge Function and a provider such as Resend.
-7. Add holiday closures, PTO, and one-off blocked time.
-8. Add customer lookup by booking reference plus email.
-9. Add revenue/popular-service dashboard cards.
+4. Add route-level lazy loading for admin screens and the gallery/admin-heavy surfaces.
+5. Add real email delivery through a Supabase Edge Function and a provider such as Resend.
+6. Add holiday closures, PTO, and one-off blocked time.
+7. Add customer lookup by booking reference plus email.
+8. Add revenue/popular-service dashboard cards.
 10. Consider Stripe deposits if no-shows matter.
 
 ## Deep Handoff Doc

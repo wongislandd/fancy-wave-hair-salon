@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Clock, Plus, Save, Scissors, UserRound, UsersRound } from "lucide-react";
 import { AdminShell } from "../components/AdminShell";
 import { stylistFormSchema, type StylistFormValues } from "../lib/admin";
-import { formatPrice } from "../lib/booking";
+import { formatPriceRange } from "../lib/booking";
 import {
   listAdminServices,
   listAdminStylists,
@@ -273,7 +273,7 @@ export function AdminStylistsPage() {
                       <span className="min-w-0">
                         <span className="block font-semibold">{serviceText.name}</span>
                         <span className="block text-sm text-wave-ink/60">
-                          {service.durationMinutes} {t("common.min")} / {formatPrice(service.priceCents, locale)}
+                          {service.durationMinutes} {t("common.min")} / {formatPriceRange(service, locale)}
                         </span>
                       </span>
                     </label>

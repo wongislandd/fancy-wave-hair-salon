@@ -3,6 +3,11 @@ import { DEFAULT_SALON_TIME_ZONE, dateKeyInTimeZone } from "./booking";
 import type { Language } from "./localization";
 import type { Appointment } from "./types";
 
+const optionalPriceDollarsSchema = z.preprocess(
+  (value) => (value === "" || value === null || value === undefined ? null : value),
+  z.coerce.number().min(0).max(1000).nullable()
+);
+
 export const serviceFormSchema = z.object({
   nameEn: z.string().trim(),
   nameZh: z.string().trim(),
@@ -10,6 +15,8 @@ export const serviceFormSchema = z.object({
   descriptionZh: z.string().trim(),
   durationMinutes: z.coerce.number().int().min(15).max(360),
   priceDollars: z.coerce.number().min(0).max(1000),
+  priceMaxDollars: optionalPriceDollarsSchema.default(null),
+  priceIsStartingAt: z.boolean().default(false),
   isActive: z.boolean()
 }).superRefine((values, context) => {
   if (!values.nameEn && !values.nameZh) {
@@ -25,6 +32,25 @@ export const serviceFormSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ["descriptionEn"],
       message: "Enter an English or Chinese service description / 请输入英文或中文服务介绍"
+    });
+  }
+
+  if (values.priceIsStartingAt && values.priceMaxDollars !== null) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["priceMaxDollars"],
+      message: "Use either a maximum price or plus pricing."
+    });
+  }
+
+  if (
+    values.priceMaxDollars !== null &&
+    values.priceMaxDollars <= values.priceDollars
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["priceMaxDollars"],
+      message: "Maximum price must be greater than the base price."
     });
   }
 });

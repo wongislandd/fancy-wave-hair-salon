@@ -1,0 +1,111 @@
+// @vitest-environment jsdom
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { LanguageProvider } from "../lib/i18n";
+import { AdminServicesPage } from "./AdminServicesPage";
+import type { Service, Stylist } from "../lib/types";
+
+const services: Service[] = [
+  {
+    id: "service-exact",
+    name: "Men's Haircut",
+    nameEn: "Men's Haircut",
+    nameZh: "男士剪发",
+    description: "Wash, precision cut, and a soft finish.",
+    descriptionEn: "Wash, precision cut, and a soft finish.",
+    descriptionZh: "洗发、精剪和造型。",
+    durationMinutes: 30,
+    priceCents: 2800,
+    displayOrder: 1,
+    isActive: true
+  },
+  {
+    id: "service-range",
+    name: "Gloss Treatment",
+    nameEn: "Gloss Treatment",
+    nameZh: "亮泽护理",
+    description: "Tone refresh and shine treatment.",
+    descriptionEn: "Tone refresh and shine treatment.",
+    descriptionZh: "补色和亮泽护理。",
+    durationMinutes: 45,
+    priceCents: 2800,
+    priceMaxCents: 6000,
+    displayOrder: 2,
+    isActive: true
+  },
+  {
+    id: "service-open",
+    name: "Full Color",
+    nameEn: "Full Color",
+    nameZh: "全头染发",
+    description: "All-over color consultation, application, and finish.",
+    descriptionEn: "All-over color consultation, application, and finish.",
+    descriptionZh: "染发咨询、全头上色和造型。",
+    durationMinutes: 120,
+    priceCents: 16500,
+    priceIsStartingAt: true,
+    displayOrder: 3,
+    isActive: true
+  }
+];
+
+const stylists: Stylist[] = [
+  {
+    id: "stylist-nina",
+    name: "Nina Park",
+    bio: "Precision cuts and polish.",
+    specialties: ["Cuts"],
+    serviceIds: ["service-exact", "service-range"],
+    isActive: true,
+    displayOrder: 1
+  },
+  {
+    id: "stylist-mara",
+    name: "Mara Lee",
+    bio: "Color and transformations.",
+    specialties: ["Color"],
+    serviceIds: ["service-open"],
+    isActive: true,
+    displayOrder: 2
+  }
+];
+
+vi.mock("../lib/data", () => ({
+  isStaffSignedIn: vi.fn(async () => true),
+  listAdminServices: vi.fn(async () => services),
+  listAdminStylists: vi.fn(async () => stylists),
+  saveService: vi.fn()
+}));
+
+function renderAdminServicesPage() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <LanguageProvider>
+        <MemoryRouter initialEntries={["/admin/services"]}>
+          <AdminServicesPage />
+        </MemoryRouter>
+      </LanguageProvider>
+    </QueryClientProvider>
+  );
+}
+
+describe("AdminServicesPage", () => {
+  beforeEach(() => {
+    window.localStorage.setItem("fancy-wave-language", "en");
+  });
+
+  it("shows exact, bounded range, and plus prices in stylist coverage", async () => {
+    renderAdminServicesPage();
+
+    expect(await screen.findByRole("heading", { name: "Stylist coverage" })).toBeTruthy();
+    expect(screen.getAllByText("30 min / $28").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("45 min / $28-$60").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("120 min / $165+").length).toBeGreaterThan(0);
+  });
+});

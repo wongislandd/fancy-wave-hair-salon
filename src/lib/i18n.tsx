@@ -1,10 +1,11 @@
 import {
+  useEffect,
   useMemo,
   useState,
   type ReactNode
 } from "react";
 import { LanguageContext, type LanguageContextValue } from "./language-context";
-import { defaultLanguage, isLanguage, type Language } from "./localization";
+import { defaultLanguage, isLanguage, localeForLanguage, type Language } from "./localization";
 
 const storageKey = "fancy-wave-language";
 
@@ -84,6 +85,7 @@ const en = {
   "manage.invalid": "This booking link is invalid or expired.",
   "manage.bookNew": "Book a new appointment",
   "manage.booked": "You're booked",
+  "manage.confirmationEmailHint": "A confirmation email should be sent. It may have gone to spam.",
   "manage.title": "Manage booking",
   "manage.when": "When",
   "manage.guest": "Guest",
@@ -155,6 +157,9 @@ const en = {
   "admin.services.descriptionZh": "Chinese description",
   "admin.services.duration": "Duration",
   "admin.services.price": "Price",
+  "admin.services.priceBase": "Base",
+  "admin.services.priceMax": "Max",
+  "admin.services.pricePlus": "Plus",
   "admin.services.activePublicly": "Active publicly",
   "admin.services.visibleBooking": "Visible in the customer booking flow",
   "admin.services.save": "Save service",
@@ -212,6 +217,9 @@ const en = {
   "admin.gallery.newCopy": "Add a salon photo and description",
   "admin.gallery.file": "Photo file",
   "admin.gallery.fileRequired": "Choose a photo file before saving.",
+  "admin.gallery.choosePhoto": "Choose photo",
+  "admin.gallery.noFileSelected": "No photo selected",
+  "admin.gallery.previewAlt": "Selected photo preview",
   "admin.gallery.altText": "Photo description",
   "admin.gallery.altTextPlaceholder": "Describe the photo in English or Chinese",
   "admin.gallery.altTextEn": "English description",
@@ -244,6 +252,11 @@ const en = {
   "drawer.customer": "Customer",
   "drawer.staff": "Staff",
   "drawer.noPrevious": "No previous appointments for this guest.",
+  "drawer.moveAppointment": "Move appointment",
+  "drawer.moveCopy": "Choose a new available time for this same service and stylist. The guest will receive an updated email.",
+  "drawer.loadingTimes": "Loading available times...",
+  "drawer.noMoveTimes": "No available times for this day.",
+  "drawer.moving": "Moving...",
   "drawer.cancelAppointment": "Cancel appointment",
   "drawer.cancelling": "Cancelling...",
   "days.0": "Sunday",
@@ -331,6 +344,7 @@ const zh: Record<keyof typeof en, string> = {
   "manage.invalid": "这个预约链接无效或已过期。",
   "manage.bookNew": "重新预约",
   "manage.booked": "预约成功",
+  "manage.confirmationEmailHint": "确认邮件应该已经发送。如果没有看到，请检查垃圾邮件。",
   "manage.title": "管理预约",
   "manage.when": "时间",
   "manage.guest": "客人",
@@ -402,6 +416,9 @@ const zh: Record<keyof typeof en, string> = {
   "admin.services.descriptionZh": "中文介绍",
   "admin.services.duration": "时长",
   "admin.services.price": "价格",
+  "admin.services.priceBase": "\u57fa\u672c",
+  "admin.services.priceMax": "\u6700\u9ad8",
+  "admin.services.pricePlus": "\u52a0\u53f7",
   "admin.services.activePublicly": "公开启用",
   "admin.services.visibleBooking": "显示在客人预约流程中",
   "admin.services.save": "保存服务",
@@ -459,6 +476,9 @@ const zh: Record<keyof typeof en, string> = {
   "admin.gallery.newCopy": "\u65b0\u589e\u6c99\u9f99\u7167\u7247\u548c\u7167\u7247\u63cf\u8ff0",
   "admin.gallery.file": "\u7167\u7247\u6587\u4ef6",
   "admin.gallery.fileRequired": "\u4fdd\u5b58\u524d\u8bf7\u9009\u62e9\u7167\u7247\u6587\u4ef6\u3002",
+  "admin.gallery.choosePhoto": "\u9009\u62e9\u7167\u7247",
+  "admin.gallery.noFileSelected": "\u672a\u9009\u62e9\u7167\u7247",
+  "admin.gallery.previewAlt": "\u5df2\u9009\u7167\u7247\u9884\u89c8",
   "admin.gallery.altText": "\u7167\u7247\u63cf\u8ff0",
   "admin.gallery.altTextPlaceholder": "\u53ef\u7528\u4e2d\u6587\u6216\u82f1\u6587\u63cf\u8ff0\u7167\u7247",
   "admin.gallery.altTextEn": "\u82f1\u6587\u7167\u7247\u63cf\u8ff0",
@@ -491,6 +511,11 @@ const zh: Record<keyof typeof en, string> = {
   "drawer.customer": "客人",
   "drawer.staff": "员工",
   "drawer.noPrevious": "此客人没有过往预约。",
+  "drawer.moveAppointment": "改期预约",
+  "drawer.moveCopy": "为同一项服务和同一位发型师选择新的可用时间。客人会收到更新邮件。",
+  "drawer.loadingTimes": "正在加载可预约时间...",
+  "drawer.noMoveTimes": "这一天没有可用时间。",
+  "drawer.moving": "正在改期...",
   "drawer.cancelAppointment": "取消预约",
   "drawer.cancelling": "取消中...",
   "days.0": "周日",
@@ -506,19 +531,62 @@ const translations = { en, zh };
 
 type TranslationKey = keyof typeof en;
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window === "undefined") return defaultLanguage;
+function readStoredLanguage(): Language | null {
+  if (typeof window === "undefined") return null;
 
+  try {
     const stored = window.localStorage.getItem(storageKey);
-    return isLanguage(stored) ? stored : defaultLanguage;
-  });
+    return isLanguage(stored) ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
+function languageFromLocale(locale: string | null | undefined): Language | null {
+  const normalized = locale?.toLowerCase();
+  if (!normalized) return null;
+
+  if (normalized === "zh" || normalized.startsWith("zh-")) return "zh";
+  if (normalized === "en" || normalized.startsWith("en-")) return "en";
+  return null;
+}
+
+function readBrowserLanguage(): Language | null {
+  if (typeof window === "undefined") return null;
+
+  const locales = [
+    ...(window.navigator.languages ?? []),
+    window.navigator.language
+  ];
+
+  for (const locale of locales) {
+    const language = languageFromLocale(locale);
+    if (language) return language;
+  }
+
+  return null;
+}
+
+function resolveInitialLanguage(): Language {
+  return readStoredLanguage() ?? readBrowserLanguage() ?? defaultLanguage;
+}
+
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguageState] = useState<Language>(resolveInitialLanguage);
+
+  useEffect(() => {
+    document.documentElement.lang = localeForLanguage(language);
+  }, [language]);
 
   const value = useMemo<LanguageContextValue>(() => ({
     language,
     setLanguage: (nextLanguage) => {
       setLanguageState(nextLanguage);
-      window.localStorage.setItem(storageKey, nextLanguage);
+      try {
+        window.localStorage.setItem(storageKey, nextLanguage);
+      } catch {
+        // Preference persistence is helpful, but rendering should not depend on it.
+      }
     },
     t: (key, params) => {
       const translationKey = key as TranslationKey;

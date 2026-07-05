@@ -2,7 +2,7 @@ import type { Appointment, GalleryPhoto, ManageableBooking, Service } from "./ty
 
 export type Language = "en" | "zh";
 
-export const defaultLanguage: Language = "zh";
+export const defaultLanguage: Language = "en";
 
 export function isLanguage(value: string | null): value is Language {
   return value === "en" || value === "zh";

@@ -1,6 +1,7 @@
 export type BookingEmailKind =
   | "booking_confirmation"
   | "booking_rescheduled"
+  | "booking_modified"
   | "booking_cancelled";
 
 export type BookingEmailRequest = {

@@ -1,10 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarX2, Mail, Phone, Save, StickyNote, UserRound, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CalendarClock, CalendarX2, Clock3, Mail, Phone, Save, StickyNote, UserRound, X } from "lucide-react";
 import { customerHistoryForAppointment } from "../lib/admin";
-import { DEFAULT_SALON_TIME_ZONE, formatAppointmentRange, formatDateInTimeZone, formatPrice } from "../lib/booking";
+import {
+  DEFAULT_SALON_TIME_ZONE,
+  formatAppointmentRange,
+  formatDateInTimeZone,
+  formatDateKeyInTimeZone,
+  formatPriceRange,
+  formatTimeInTimeZone
+} from "../lib/booking";
 import {
   cancelAppointmentAsStaff,
+  getAvailableSlots,
+  nextBookableDates,
+  rescheduleAppointmentAsStaff,
   updateAppointmentInternalNotes
 } from "../lib/data";
 import { useLanguage } from "../lib/use-language";
@@ -12,7 +22,7 @@ import {
   getAppointmentServiceName,
   localeForLanguage
 } from "../lib/localization";
-import type { Appointment } from "../lib/types";
+import type { Appointment, Service, Stylist } from "../lib/types";
 import { StatusBadge } from "./StatusBadge";
 
 export function AppointmentDetailDrawer({
@@ -28,19 +38,55 @@ export function AppointmentDetailDrawer({
   const locale = localeForLanguage(language);
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState("");
+  const moveDates = useMemo(() => nextBookableDates(10), []);
+  const [moveDate, setMoveDate] = useState(moveDates[0] ?? "");
+  const [selectedMoveSlot, setSelectedMoveSlot] = useState<string | null>(null);
 
   useEffect(() => {
     setNotes(appointment?.internalNotes ?? "");
-  }, [appointment]);
+    setMoveDate(moveDates[0] ?? "");
+    setSelectedMoveSlot(null);
+  }, [appointment, moveDates]);
 
   const history = useMemo(
     () => (appointment ? customerHistoryForAppointment(appointments, appointment) : []),
     [appointment, appointments]
   );
+  const moveService = useMemo(
+    () => (appointment ? serviceFromAppointment(appointment) : null),
+    [appointment]
+  );
+  const moveStylist = useMemo(
+    () => (appointment ? stylistFromAppointment(appointment) : null),
+    [appointment]
+  );
+  const moveSlotsQuery = useQuery({
+    queryKey: ["admin-move-slots", appointment?.id, moveDate],
+    queryFn: () => getAvailableSlots(moveService!, moveDate, moveStylist!),
+    enabled: Boolean(
+      appointment &&
+        appointment.status === "confirmed" &&
+        moveService &&
+        moveStylist &&
+        moveDate
+    )
+  });
+  const moveSlots = moveSlotsQuery.data ?? [];
+  const selectedSlot = moveSlots.find((slot) => slot.startsAt === selectedMoveSlot);
 
   const notesMutation = useMutation({
     mutationFn: () => updateAppointmentInternalNotes(appointment!.id, notes),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-appointments"] })
+  });
+
+  const moveMutation = useMutation({
+    mutationFn: () =>
+      rescheduleAppointmentAsStaff(appointment!.id, selectedSlot!.startsAt),
+    onSuccess: () => {
+      setSelectedMoveSlot(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-move-slots", appointment!.id] });
+    }
   });
 
   const cancelMutation = useMutation({
@@ -133,12 +179,87 @@ export function AppointmentDetailDrawer({
               <DetailRow label={t("drawer.when")} value={formatAppointmentRange(appointment.startsAt, appointment.endsAt, undefined, locale)} />
               <DetailRow
                 label={t("drawer.service")}
-                value={`${getAppointmentServiceName(appointment, language)} / ${appointment.serviceDurationMinutesSnapshot} ${t("common.min")} / ${formatPrice(appointment.servicePriceCentsSnapshot, locale)}`}
+                value={`${getAppointmentServiceName(appointment, language)} / ${appointment.serviceDurationMinutesSnapshot} ${t("common.min")} / ${formatPriceRange({
+                  priceCents: appointment.servicePriceCentsSnapshot,
+                  priceMaxCents: appointment.servicePriceMaxCentsSnapshot,
+                  priceIsStartingAt: appointment.servicePriceIsStartingAtSnapshot
+                }, locale)}`}
               />
               <DetailRow label={t("drawer.stylist")} value={appointment.stylistNameSnapshot} />
               <DetailRow label={t("drawer.booked")} value={formatDateTime(appointment.createdAt, locale)} />
             </dl>
           </section>
+
+          {appointment.status === "confirmed" && (
+            <section className="mt-6 rounded-2xl border border-wave-deep/10 bg-wave-cream/55 p-4">
+              <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-wave-deep">
+                <CalendarClock size={16} />
+                {t("drawer.moveAppointment")}
+              </h3>
+              <p className="mt-2 text-sm text-wave-ink/65">{t("drawer.moveCopy")}</p>
+              <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
+                {moveDates.map((day) => (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => {
+                      setMoveDate(day);
+                      setSelectedMoveSlot(null);
+                    }}
+                    className={`focus-ring min-w-[112px] rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${
+                      moveDate === day
+                        ? "border-wave-deep bg-wave-deep text-white"
+                        : "border-wave-deep/10 bg-white"
+                    }`}
+                  >
+                    <span className="block">{formatDateKeyInTimeZone(day, DEFAULT_SALON_TIME_ZONE, { weekday: "short" }, locale)}</span>
+                    <span className={moveDate === day ? "text-white/75" : "text-wave-ink/55"}>
+                      {formatDateKeyInTimeZone(day, DEFAULT_SALON_TIME_ZONE, { month: "short", day: "numeric" }, locale)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 rounded-2xl border border-wave-deep/10 bg-white p-3">
+                {moveSlotsQuery.isFetching && (
+                  <p className="text-sm text-wave-ink/65">{t("drawer.loadingTimes")}</p>
+                )}
+                {!moveSlotsQuery.isFetching && moveSlots.length === 0 && (
+                  <p className="text-sm text-wave-ink/65">{t("drawer.noMoveTimes")}</p>
+                )}
+                {!moveSlotsQuery.isFetching && moveSlots.length > 0 && (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {moveSlots.map((slot) => (
+                      <button
+                        key={slot.startsAt}
+                        type="button"
+                        onClick={() => setSelectedMoveSlot(slot.startsAt)}
+                        className={`focus-ring rounded-2xl border p-3 text-left text-sm transition ${
+                          selectedMoveSlot === slot.startsAt
+                            ? "border-wave-deep ring-2 ring-wave-deep/20"
+                            : "border-wave-deep/10 hover:border-wave-deep/40"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 font-black">
+                          <Clock3 size={15} />
+                          {formatTimeInTimeZone(slot.startsAt, DEFAULT_SALON_TIME_ZONE, locale)}
+                        </span>
+                        <span className="mt-1 block text-wave-ink/60">{appointment.stylistNameSnapshot}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                disabled={!selectedSlot || moveMutation.isPending}
+                onClick={() => moveMutation.mutate()}
+                className="focus-ring mt-3 inline-flex items-center gap-2 rounded-full bg-wave-deep px-4 py-2 font-semibold text-white disabled:opacity-45"
+              >
+                <CalendarClock size={16} />
+                {moveMutation.isPending ? t("drawer.moving") : t("drawer.moveAppointment")}
+              </button>
+            </section>
+          )}
 
           <section className="mt-6">
             <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-wave-deep">
@@ -225,6 +346,36 @@ function DetailRow({ label, value }: { label: string; value: string }) {
       <dd className="mt-1 text-wave-ink/70">{value}</dd>
     </div>
   );
+}
+
+function serviceFromAppointment(appointment: Appointment): Service {
+  return {
+    id: appointment.serviceId,
+    name: appointment.serviceNameSnapshot,
+    nameEn: appointment.serviceNameSnapshot,
+    nameZh: appointment.serviceNameZhSnapshot ?? appointment.serviceNameSnapshot,
+    description: "",
+    descriptionEn: "",
+    descriptionZh: "",
+    durationMinutes: appointment.serviceDurationMinutesSnapshot,
+    priceCents: appointment.servicePriceCentsSnapshot,
+    priceMaxCents: appointment.servicePriceMaxCentsSnapshot ?? null,
+    priceIsStartingAt: Boolean(appointment.servicePriceIsStartingAtSnapshot),
+    isActive: true,
+    displayOrder: 0
+  };
+}
+
+function stylistFromAppointment(appointment: Appointment): Stylist {
+  return {
+    id: appointment.stylistId,
+    name: appointment.stylistNameSnapshot,
+    bio: "",
+    specialties: [],
+    serviceIds: [appointment.serviceId],
+    isActive: true,
+    displayOrder: 0
+  };
 }
 
 function formatDateTime(value: string, locale: string): string {

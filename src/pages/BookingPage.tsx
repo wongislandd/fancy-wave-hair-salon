@@ -10,7 +10,7 @@ import {
   bookingDetailsSchema,
   formatDateInTimeZone,
   formatDateKeyInTimeZone,
-  formatPrice,
+  formatPriceRange,
   formatTimeInTimeZone,
   hourInTimeZone,
   type BookingDetails
@@ -141,7 +141,7 @@ export function BookingPage() {
                       </div>
                       <p className="mt-2 text-sm leading-6 text-wave-ink/65">{serviceText.description}</p>
                       <p className="mt-3 text-sm font-semibold">
-                        {service.durationMinutes} {t("common.min")} / {formatPrice(service.priceCents, locale)}
+                        {service.durationMinutes} {t("common.min")} / {formatPriceRange(service, locale)}
                       </p>
                     </button>
                   );

@@ -29,6 +29,8 @@ insert into public.services (
   description_zh,
   duration_minutes,
   price_cents,
+  price_max_cents,
+  price_is_starting_at,
   is_active,
   display_order
 )
@@ -41,6 +43,8 @@ values
     '洗发、精剪和柔顺造型。',
     60,
     6500,
+    null,
+    false,
     true,
     1
   ),
@@ -52,6 +56,8 @@ values
     '补色调理，让发色更亮泽。',
     45,
     8500,
+    null,
+    false,
     true,
     2
   ),
@@ -63,6 +69,8 @@ values
     '柔顺蓬松的日常吹风造型。',
     45,
     5500,
+    null,
+    false,
     true,
     3
   ),
@@ -74,6 +82,8 @@ values
     '包含染发咨询、全头上色和造型。',
     120,
     16500,
+    null,
+    false,
     true,
     4
   )
@@ -84,6 +94,8 @@ on conflict (id) do update set
   description_zh = excluded.description_zh,
   duration_minutes = excluded.duration_minutes,
   price_cents = excluded.price_cents,
+  price_max_cents = excluded.price_max_cents,
+  price_is_starting_at = excluded.price_is_starting_at,
   is_active = excluded.is_active,
   display_order = excluded.display_order;
 
@@ -143,6 +155,8 @@ insert into public.appointments (
   service_name_zh_snapshot,
   service_duration_minutes_snapshot,
   service_price_cents_snapshot,
+  service_price_max_cents_snapshot,
+  service_price_is_starting_at_snapshot,
   stylist_id,
   stylist_name_snapshot,
   customer_name,
@@ -166,6 +180,8 @@ values
     '招牌剪发',
     60,
     6500,
+    null,
+    false,
     'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     'Nina Park',
     'Maya Chen',
@@ -188,6 +204,8 @@ values
     '吹风造型',
     45,
     5500,
+    null,
+    false,
     'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
     'Mara Lee',
     'Maya Chen',
@@ -209,6 +227,8 @@ on conflict (id) do update set
   service_name_zh_snapshot = excluded.service_name_zh_snapshot,
   service_duration_minutes_snapshot = excluded.service_duration_minutes_snapshot,
   service_price_cents_snapshot = excluded.service_price_cents_snapshot,
+  service_price_max_cents_snapshot = excluded.service_price_max_cents_snapshot,
+  service_price_is_starting_at_snapshot = excluded.service_price_is_starting_at_snapshot,
   stylist_id = excluded.stylist_id,
   stylist_name_snapshot = excluded.stylist_name_snapshot,
   customer_name = excluded.customer_name,

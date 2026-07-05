@@ -442,6 +442,8 @@ export async function bookAppointment(
       serviceNameZhSnapshot: service.nameZh ?? service.name,
       serviceDurationMinutesSnapshot: service.durationMinutes,
       servicePriceCentsSnapshot: service.priceCents,
+      servicePriceMaxCentsSnapshot: service.priceMaxCents ?? null,
+      servicePriceIsStartingAtSnapshot: Boolean(service.priceIsStartingAt),
       customerName: request.customerName,
       customerEmail: request.customerEmail,
       customerPhone: request.customerPhone,
@@ -513,6 +515,8 @@ export async function bookStaffAppointment(
       serviceNameZhSnapshot: service.nameZh ?? service.name,
       serviceDurationMinutesSnapshot: service.durationMinutes,
       servicePriceCentsSnapshot: service.priceCents,
+      servicePriceMaxCentsSnapshot: service.priceMaxCents ?? null,
+      servicePriceIsStartingAtSnapshot: Boolean(service.priceIsStartingAt),
       customerName: request.customerName.trim(),
       customerEmail: request.customerEmail?.trim() ?? "",
       customerPhone: request.customerPhone?.trim() ?? "",
@@ -562,6 +566,8 @@ export async function loadBookingByToken(
       serviceNameZh: appointment.serviceNameZhSnapshot ?? appointment.serviceNameSnapshot,
       serviceDurationMinutes: appointment.serviceDurationMinutesSnapshot,
       servicePriceCents: appointment.servicePriceCentsSnapshot,
+      servicePriceMaxCents: appointment.servicePriceMaxCentsSnapshot ?? null,
+      servicePriceIsStartingAt: Boolean(appointment.servicePriceIsStartingAtSnapshot),
       customerName: appointment.customerName,
       customerEmail: appointment.customerEmail,
       customerPhone: appointment.customerPhone,
@@ -586,6 +592,8 @@ export async function saveService(
     descriptionZh: string;
     durationMinutes: number;
     priceDollars: number;
+    priceMaxDollars: number | null;
+    priceIsStartingAt: boolean;
     isActive: boolean;
   },
   existingId?: string
@@ -594,13 +602,21 @@ export async function saveService(
   const chineseName = values.nameZh.trim() || values.nameEn.trim();
   const englishDescription = values.descriptionEn.trim() || values.descriptionZh.trim();
   const chineseDescription = values.descriptionZh.trim() || values.descriptionEn.trim();
+  const priceCents = dollarsToCents(values.priceDollars);
+  const priceMaxCents = values.priceIsStartingAt
+    ? null
+    : values.priceMaxDollars === null
+      ? null
+      : dollarsToCents(values.priceMaxDollars);
   const payload = {
     name_en: englishName,
     name_zh: chineseName,
     description_en: englishDescription,
     description_zh: chineseDescription,
     duration_minutes: values.durationMinutes,
-    price_cents: Math.round(values.priceDollars * 100),
+    price_cents: priceCents,
+    price_max_cents: priceMaxCents,
+    price_is_starting_at: values.priceIsStartingAt,
     is_active: values.isActive,
     display_order: demoServices.length + 1
   };
@@ -616,7 +632,9 @@ export async function saveService(
       service.name = englishName;
       service.description = englishDescription;
       service.durationMinutes = values.durationMinutes;
-      service.priceCents = Math.round(values.priceDollars * 100);
+      service.priceCents = priceCents;
+      service.priceMaxCents = priceMaxCents;
+      service.priceIsStartingAt = values.priceIsStartingAt;
       service.isActive = values.isActive;
     } else {
       demoServices.push({
@@ -628,7 +646,9 @@ export async function saveService(
         name: englishName,
         description: englishDescription,
         durationMinutes: values.durationMinutes,
-        priceCents: Math.round(values.priceDollars * 100),
+        priceCents,
+        priceMaxCents,
+        priceIsStartingAt: values.priceIsStartingAt,
         isActive: values.isActive,
         displayOrder: demoServices.length + 1
       });
@@ -796,15 +816,91 @@ export async function cancelAppointmentAsStaff(id: string): Promise<void> {
     return;
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("appointments")
     .update({
       status: "cancelled",
       cancelled_at: new Date().toISOString(),
       cancelled_reason: "Cancelled by staff"
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id, booking_reference, customer_email")
+    .single();
   if (error) throw new Error(error.message);
+
+  await queueAndSendStaffBookingEmailBestEffort({
+    appointmentId: String(data.id),
+    bookingReference: String(data.booking_reference),
+    body: `Your booking reference ${String(data.booking_reference)} has been cancelled by the salon.`,
+    kind: "booking_cancelled",
+    recipientEmail: String(data.customer_email ?? ""),
+    subject: "Your Fancy Wave appointment was cancelled"
+  });
+}
+
+export async function rescheduleAppointmentAsStaff(
+  id: string,
+  newStartsAt: string
+): Promise<void> {
+  if (!supabase) {
+    const appointment = demoAppointments.find((item) => item.id === id);
+    if (!appointment) throw new Error("Appointment not found");
+    assertDemoSlotAvailable({
+      service: serviceFromAppointment(appointment),
+      stylistId: appointment.stylistId,
+      stylistName: appointment.stylistNameSnapshot,
+      startsAt: newStartsAt,
+      now: new Date(),
+      excludedAppointmentId: appointment.id
+    });
+    appointment.startsAt = newStartsAt;
+    appointment.endsAt = new Date(
+      new Date(newStartsAt).getTime() +
+        appointment.serviceDurationMinutesSnapshot * 60_000
+    ).toISOString();
+    appointment.updatedAt = new Date().toISOString();
+    return;
+  }
+
+  const { data: existing, error: loadError } = await supabase
+    .from("appointments")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (loadError) throw new Error(loadError.message);
+
+  const endsAt = new Date(
+    new Date(newStartsAt).getTime() +
+      Number(existing.service_duration_minutes_snapshot) * 60_000
+  ).toISOString();
+
+  const { data, error } = await supabase
+    .from("appointments")
+    .update({
+      starts_at: newStartsAt,
+      ends_at: endsAt
+    })
+    .eq("id", id)
+    .select("id, booking_reference, customer_email")
+    .single();
+  if (error) throw new Error(error.message);
+
+  await logStaffAppointmentEventBestEffort({
+    appointmentId: String(data.id),
+    eventType: "rescheduled",
+    metadata: {
+      previous_starts_at: String(existing.starts_at),
+      new_starts_at: newStartsAt
+    }
+  });
+  await queueAndSendStaffBookingEmailBestEffort({
+    appointmentId: String(data.id),
+    bookingReference: String(data.booking_reference),
+    body: `Your booking reference ${String(data.booking_reference)} has been rescheduled by the salon.`,
+    kind: "booking_rescheduled",
+    recipientEmail: String(data.customer_email ?? ""),
+    subject: "Your Fancy Wave appointment was moved"
+  });
 }
 
 export async function rescheduleManagedBooking(
@@ -889,6 +985,10 @@ export function nextBookableDates(count = 10): string[] {
   );
 }
 
+function dollarsToCents(value: number): number {
+  return Math.round(value * 100);
+}
+
 function mapService(row: Record<string, unknown>): Service {
   const nameEn = String(row.name_en ?? row.name ?? "");
   const nameZh = String(row.name_zh ?? "");
@@ -905,6 +1005,10 @@ function mapService(row: Record<string, unknown>): Service {
     description: descriptionEn || descriptionZh,
     durationMinutes: Number(row.duration_minutes),
     priceCents: Number(row.price_cents),
+    priceMaxCents: row.price_max_cents === null || row.price_max_cents === undefined
+      ? null
+      : Number(row.price_max_cents),
+    priceIsStartingAt: Boolean(row.price_is_starting_at),
     isActive: Boolean(row.is_active),
     displayOrder: Number(row.display_order)
   };
@@ -921,6 +1025,12 @@ function mapAppointment(row: Record<string, unknown>): Appointment {
       : null,
     serviceDurationMinutesSnapshot: Number(row.service_duration_minutes_snapshot),
     servicePriceCentsSnapshot: Number(row.service_price_cents_snapshot),
+    servicePriceMaxCentsSnapshot:
+      row.service_price_max_cents_snapshot === null ||
+      row.service_price_max_cents_snapshot === undefined
+        ? null
+        : Number(row.service_price_max_cents_snapshot),
+    servicePriceIsStartingAtSnapshot: Boolean(row.service_price_is_starting_at_snapshot),
     customerName: String(row.customer_name),
     customerEmail: String(row.customer_email),
     customerPhone: String(row.customer_phone),
@@ -1088,6 +1198,8 @@ function serviceFromAppointment(appointment: Appointment): Service {
     description: "",
     durationMinutes: appointment.serviceDurationMinutesSnapshot,
     priceCents: appointment.servicePriceCentsSnapshot,
+    priceMaxCents: appointment.servicePriceMaxCentsSnapshot ?? null,
+    priceIsStartingAt: Boolean(appointment.servicePriceIsStartingAtSnapshot),
     isActive: true,
     displayOrder: 0
   };
@@ -1150,6 +1262,80 @@ function publicGalleryPhotoUrl(storagePath: string): string {
   if (!supabase) return "/assets/salon-hero.png";
 
   return supabase.storage.from(galleryBucketName).getPublicUrl(storagePath).data.publicUrl;
+}
+
+async function queueAndSendStaffBookingEmailBestEffort({
+  appointmentId,
+  bookingReference,
+  body,
+  kind,
+  recipientEmail,
+  subject
+}: {
+  appointmentId: string;
+  bookingReference: string;
+  body: string;
+  kind: "booking_rescheduled" | "booking_modified" | "booking_cancelled";
+  recipientEmail: string;
+  subject: string;
+}): Promise<void> {
+  const client = supabase;
+  const email = recipientEmail.trim();
+
+  if (!client || !email) return;
+
+  try {
+    const { error } = await client.from("email_logs").insert({
+      appointment_id: appointmentId,
+      kind,
+      recipient_email: email,
+      subject,
+      body
+    });
+
+    if (error) {
+      console.warn("Booking email was not queued", error);
+      return;
+    }
+
+    await sendBookingEmailBestEffort(client, {
+      appointmentId,
+      kind
+    });
+  } catch (error) {
+    console.warn(
+      `Booking email was not queued for ${bookingReference}`,
+      error
+    );
+  }
+}
+
+async function logStaffAppointmentEventBestEffort({
+  appointmentId,
+  eventType,
+  metadata
+}: {
+  appointmentId: string;
+  eventType: "rescheduled" | "cancelled";
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  const client = supabase;
+  if (!client) return;
+
+  try {
+    const { error } = await client.from("appointment_events").insert({
+      appointment_id: appointmentId,
+      event_type: eventType,
+      actor_type: "staff",
+      metadata: metadata ?? {}
+    });
+
+    if (error) {
+      console.warn("Appointment event was not logged", error);
+    }
+  } catch (error) {
+    console.warn("Appointment event was not logged", error);
+  }
 }
 
 function asRpcClient(): RpcClient {

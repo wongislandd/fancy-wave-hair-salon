@@ -10,6 +10,8 @@ export interface Service {
   description: string;
   durationMinutes: number;
   priceCents: number;
+  priceMaxCents?: number | null;
+  priceIsStartingAt?: boolean;
   isActive: boolean;
   displayOrder: number;
 }
@@ -50,6 +52,8 @@ export interface Appointment {
   serviceNameZhSnapshot?: string | null;
   serviceDurationMinutesSnapshot: number;
   servicePriceCentsSnapshot: number;
+  servicePriceMaxCentsSnapshot?: number | null;
+  servicePriceIsStartingAtSnapshot?: boolean;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -95,6 +99,8 @@ export interface ManageableBooking {
   serviceNameZh?: string | null;
   serviceDurationMinutes: number;
   servicePriceCents: number;
+  servicePriceMaxCents?: number | null;
+  servicePriceIsStartingAt?: boolean;
   customerName: string;
   customerEmail: string;
   customerPhone: string;

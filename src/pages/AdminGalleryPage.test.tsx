@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LanguageProvider } from "../lib/i18n";
 import { AdminGalleryPage } from "./AdminGalleryPage";
 import type { GalleryPhoto } from "../lib/types";
@@ -40,6 +41,15 @@ vi.mock("../lib/data", () => ({
   uploadGalleryPhoto: vi.fn(async () => photos[0])
 }));
 
+beforeEach(() => {
+  window.localStorage.clear();
+  vi.stubGlobal("URL", {
+    ...URL,
+    createObjectURL: vi.fn(() => "blob:preview-photo"),
+    revokeObjectURL: vi.fn()
+  });
+});
+
 function renderAdminGalleryPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
@@ -63,6 +73,7 @@ describe("AdminGalleryPage", () => {
     expect(await screen.findByRole("heading", { name: "Gallery management" })).toBeTruthy();
     expect(await screen.findByText("Salon color chair")).toBeTruthy();
     expect(screen.getByLabelText("Photo file")).toBeTruthy();
+    expect(screen.getByText("Choose photo")).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "English" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Chinese" })).toBeNull();
     expect(screen.getByRole("heading", { name: "English description" })).toBeTruthy();
@@ -75,6 +86,20 @@ describe("AdminGalleryPage", () => {
     expect(screen.queryByLabelText("Caption")).toBeNull();
     expect(screen.getByRole("button", { name: "New photo" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Move photo down" })).toBeTruthy();
+  });
+
+  it("shows the selected file name and preview before saving", async () => {
+    const user = userEvent.setup();
+    const file = new File(["photo"], "fresh-color.png", { type: "image/png" });
+    window.localStorage.setItem("fancy-wave-language", "en");
+
+    renderAdminGalleryPage();
+
+    await screen.findByRole("heading", { name: "Gallery management" });
+    await user.upload(screen.getByLabelText("Photo file"), file);
+
+    expect(screen.getByText("fresh-color.png")).toBeTruthy();
+    expect(screen.getByAltText("Selected photo preview").getAttribute("src")).toBe("blob:preview-photo");
   });
 
   it("localizes gallery description uploads in Chinese", async () => {

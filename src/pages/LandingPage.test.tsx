@@ -19,6 +19,34 @@ const services: Service[] = [
     priceCents: 6500,
     displayOrder: 1,
     isActive: true
+  },
+  {
+    id: "service-2",
+    name: "Gloss Treatment",
+    nameEn: "Gloss Treatment",
+    nameZh: "亮泽护理",
+    description: "Tone refresh and shine treatment.",
+    descriptionEn: "Tone refresh and shine treatment.",
+    descriptionZh: "补色和亮泽护理。",
+    durationMinutes: 45,
+    priceCents: 2800,
+    priceMaxCents: 6000,
+    displayOrder: 2,
+    isActive: true
+  },
+  {
+    id: "service-3",
+    name: "Men's Haircut",
+    nameEn: "Men's Haircut",
+    nameZh: "男士剪发",
+    description: "Wash, precision cut, and a soft finish.",
+    descriptionEn: "Wash, precision cut, and a soft finish.",
+    descriptionZh: "洗发、精剪和造型。",
+    durationMinutes: 30,
+    priceCents: 2800,
+    priceIsStartingAt: true,
+    displayOrder: 3,
+    isActive: true
   }
 ];
 
@@ -69,6 +97,8 @@ describe("LandingPage", () => {
     expect(screen.getAllByText("135-45 Roosevelt Ave, Flushing, NY 11354").length).toBeGreaterThan(0);
     expect(await screen.findByText("Signature Haircut")).toBeTruthy();
     expect(screen.getByText("$65")).toBeTruthy();
+    expect(screen.getByText("$28-$60")).toBeTruthy();
+    expect(screen.getByText("$28+")).toBeTruthy();
     expect(await screen.findByRole("heading", { name: "Gallery" })).toBeTruthy();
     expect(screen.getByAltText("Salon color chair")).toBeTruthy();
     expect(screen.queryByText("Fresh color and clean shine")).toBeNull();

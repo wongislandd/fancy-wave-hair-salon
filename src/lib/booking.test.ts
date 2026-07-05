@@ -5,6 +5,7 @@ import {
   calculateAppointmentEnd,
   deriveAvailableSlots,
   formatAppointmentRange,
+  formatPriceRange,
   isCustomerManageableStatus
 } from "./booking";
 import type { Appointment, BusinessHour, Service } from "./types";
@@ -48,6 +49,12 @@ describe("booking domain helpers", () => {
         "Asia/Tokyo"
       )
     ).toBe("Mon, Jul 6 at 10:30 AM - 11:30 AM");
+  });
+
+  it("formats exact, bounded, and open service prices", () => {
+    expect(formatPriceRange({ priceCents: 2800 })).toBe("$28");
+    expect(formatPriceRange({ priceCents: 2800, priceMaxCents: 6000 })).toBe("$28-$60");
+    expect(formatPriceRange({ priceCents: 2800, priceIsStartingAt: true })).toBe("$28+");
   });
 
   it("marks only future confirmed appointments as customer-manageable", () => {

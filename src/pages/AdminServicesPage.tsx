@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Save, Scissors } from "lucide-react";
 import { AdminShell } from "../components/AdminShell";
 import { serviceFormSchema, type ServiceFormValues } from "../lib/admin";
-import { formatPrice } from "../lib/booking";
+import { formatPriceRange } from "../lib/booking";
 import { listAdminServices, listAdminStylists, saveService } from "../lib/data";
 import { useLanguage } from "../lib/use-language";
 import { getLocalizedServiceText, localeForLanguage } from "../lib/localization";
@@ -15,7 +15,9 @@ type ServiceFormState = {
   descriptionEn: string;
   descriptionZh: string;
   durationMinutes: number;
-  priceDollars: number;
+  priceDollars: string;
+  priceMaxDollars: string;
+  priceIsStartingAt: boolean;
   isActive: boolean;
 };
 
@@ -25,7 +27,9 @@ const blankServiceForm: ServiceFormState = {
   descriptionEn: "",
   descriptionZh: "",
   durationMinutes: 60,
-  priceDollars: 65,
+  priceDollars: "65",
+  priceMaxDollars: "",
+  priceIsStartingAt: false,
   isActive: true
 };
 
@@ -63,7 +67,11 @@ export function AdminServicesPage() {
       descriptionEn: selectedService.descriptionEn ?? selectedService.description,
       descriptionZh: selectedService.descriptionZh ?? "",
       durationMinutes: selectedService.durationMinutes,
-      priceDollars: selectedService.priceCents / 100,
+      priceDollars: String(selectedService.priceCents / 100),
+      priceMaxDollars: selectedService.priceMaxCents
+        ? String(selectedService.priceMaxCents / 100)
+        : "",
+      priceIsStartingAt: Boolean(selectedService.priceIsStartingAt),
       isActive: selectedService.isActive
     });
   }, [selectedService]);
@@ -145,7 +153,7 @@ export function AdminServicesPage() {
                     <div className="min-w-0">
                       <p className="truncate font-bold">{serviceText.name}</p>
                       <p className="mt-1 text-sm text-wave-ink/60">
-                        {service.durationMinutes} {t("common.min")} / {formatPrice(service.priceCents, locale)}
+                        {service.durationMinutes} {t("common.min")} / {formatPriceRange(service, locale)}
                       </p>
                     </div>
                     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -221,7 +229,7 @@ export function AdminServicesPage() {
                 </div>
               </section>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
               <Field label={t("admin.services.duration")}>
                 <div className="flex rounded-2xl border border-wave-deep/15">
                   <input
@@ -235,19 +243,57 @@ export function AdminServicesPage() {
                   <span className="flex items-center rounded-r-2xl bg-wave-mint px-3 text-sm font-semibold text-wave-deep">{t("common.min")}</span>
                 </div>
               </Field>
-              <Field label={t("admin.services.price")}>
-                <div className="flex rounded-2xl border border-wave-deep/15">
-                  <span className="flex items-center rounded-l-2xl bg-wave-mint px-3 text-sm font-semibold text-wave-deep">$</span>
-                  <input
-                    className="focus-ring min-w-0 flex-1 rounded-r-2xl px-3 py-3"
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={form.priceDollars}
-                    onChange={(event) => setForm({ ...form, priceDollars: Number(event.target.value) })}
-                  />
+              <div>
+                <span className="mb-2 block text-sm font-semibold">{t("admin.services.price")}</span>
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                  <div>
+                    <span className="mb-2 block text-xs font-semibold text-wave-ink/60">{t("admin.services.priceBase")}</span>
+                    <div className="flex rounded-2xl border border-wave-deep/15">
+                      <span className="flex items-center rounded-l-2xl bg-wave-mint px-3 text-sm font-semibold text-wave-deep">$</span>
+                      <input
+                        className="focus-ring min-w-0 flex-1 rounded-r-2xl px-3 py-3"
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={form.priceDollars}
+                        onChange={(event) => setForm({ ...form, priceDollars: event.target.value })}
+                        aria-label={t("admin.services.priceBase")}
+                      />
+                    </div>
+                  </div>
+                  <div className={form.priceIsStartingAt ? "opacity-55" : ""}>
+                    <span className="mb-2 block text-xs font-semibold text-wave-ink/60">{t("admin.services.priceMax")}</span>
+                    <div className="flex rounded-2xl border border-wave-deep/15">
+                      <span className="flex items-center rounded-l-2xl bg-wave-mint px-3 text-sm font-semibold text-wave-deep">$</span>
+                      <input
+                        className="focus-ring min-w-0 flex-1 rounded-r-2xl px-3 py-3 disabled:bg-wave-mint/70 disabled:text-wave-ink/45"
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={form.priceMaxDollars}
+                        disabled={form.priceIsStartingAt}
+                        onChange={(event) => setForm({ ...form, priceMaxDollars: event.target.value })}
+                        aria-label={t("admin.services.priceMax")}
+                      />
+                    </div>
+                  </div>
+                  <label className="flex min-h-[52px] items-center justify-between gap-3 rounded-2xl border border-wave-deep/10 px-4 py-3 font-semibold sm:mt-7">
+                    <span>{t("admin.services.pricePlus")}</span>
+                    <input
+                      type="checkbox"
+                      checked={form.priceIsStartingAt}
+                      onChange={(event) =>
+                        setForm({
+                          ...form,
+                          priceIsStartingAt: event.target.checked,
+                          priceMaxDollars: event.target.checked ? "" : form.priceMaxDollars
+                        })
+                      }
+                      className="h-5 w-5 shrink-0"
+                    />
+                  </label>
                 </div>
-              </Field>
+              </div>
             </div>
             <label className="flex items-center justify-between gap-4 rounded-2xl border border-wave-deep/10 px-4 py-3">
                 <span>
@@ -289,7 +335,7 @@ export function AdminServicesPage() {
                   <div>
                     <h3 className="font-bold">{serviceText.name}</h3>
                     <p className="mt-1 text-sm text-wave-ink/60">
-                      {service.durationMinutes} {t("common.min")} / {formatPrice(service.priceCents, locale)}
+                      {service.durationMinutes} {t("common.min")} / {formatPriceRange(service, locale)}
                     </p>
                   </div>
                   <span className="text-sm font-semibold text-wave-deep">

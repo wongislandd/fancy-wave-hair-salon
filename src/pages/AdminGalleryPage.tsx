@@ -33,6 +33,7 @@ export function AdminGalleryPage() {
   const [selectedId, setSelectedId] = useState("");
   const [form, setForm] = useState<GalleryFormState>(blankGalleryForm);
   const [file, setFile] = useState<File | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState("");
   const [formError, setFormError] = useState("");
 
   const galleryQuery = useQuery({
@@ -56,6 +57,18 @@ export function AdminGalleryPage() {
       isActive: selectedPhoto.isActive
     });
   }, [selectedPhoto]);
+
+  useEffect(() => {
+    if (!file) {
+      setFilePreviewUrl("");
+      return;
+    }
+
+    const nextPreviewUrl = URL.createObjectURL(file);
+    setFilePreviewUrl(nextPreviewUrl);
+
+    return () => URL.revokeObjectURL(nextPreviewUrl);
+  }, [file]);
 
   const refreshGallery = async () => {
     await Promise.all([
@@ -120,6 +133,13 @@ export function AdminGalleryPage() {
     nextIds.splice(nextIndex, 0, movedId);
     reorderMutation.mutate(nextIds);
   };
+
+  const previewImageUrl = filePreviewUrl || selectedPhoto?.imageUrl;
+  const previewAlt = filePreviewUrl
+    ? t("admin.gallery.previewAlt")
+    : selectedPhoto
+      ? getLocalizedGalleryPhotoText(selectedPhoto, language).altText
+      : "";
 
   return (
     <AdminShell title={t("admin.gallery.title")}>
@@ -229,23 +249,41 @@ export function AdminGalleryPage() {
           </div>
 
           <div className="mt-6 grid gap-4">
-            <Field label={t("admin.gallery.file")}>
+            <div>
+              <p className="mb-2 block text-sm font-semibold">{t("admin.gallery.file")}</p>
               <input
+                id="gallery-photo-file-input"
                 aria-label={t("admin.gallery.file")}
-                className="focus-ring w-full rounded-2xl border border-wave-deep/15 px-3 py-3"
+                className="sr-only"
                 type="file"
                 accept="image/avif,image/gif,image/jpeg,image/png,image/webp"
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                 disabled={Boolean(selectedPhoto)}
               />
-              {file && <p className="mt-2 text-sm text-wave-ink/60">{file.name}</p>}
-            </Field>
+              <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-wave-deep/10 bg-white px-4 py-3">
+                <label
+                  htmlFor="gallery-photo-file-input"
+                  aria-disabled={Boolean(selectedPhoto)}
+                  className={`focus-ring inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    selectedPhoto
+                      ? "pointer-events-none bg-wave-mint text-wave-ink/45"
+                      : "bg-wave-deep text-white hover:bg-wave-ink"
+                  }`}
+                >
+                  <Upload size={17} />
+                  {t("admin.gallery.choosePhoto")}
+                </label>
+                <span className="min-w-0 truncate text-sm text-wave-ink/65">
+                  {file ? file.name : t("admin.gallery.noFileSelected")}
+                </span>
+              </div>
+            </div>
 
-            {selectedPhoto && (
+            {previewImageUrl && (
               <div className="overflow-hidden rounded-3xl border border-wave-deep/10 bg-wave-mint">
                 <img
-                  src={selectedPhoto.imageUrl}
-                  alt={getLocalizedGalleryPhotoText(selectedPhoto, language).altText}
+                  src={previewImageUrl}
+                  alt={previewAlt}
                   className="aspect-[16/9] w-full object-cover"
                 />
               </div>
@@ -343,11 +381,3 @@ function Metric({ label, value, icon }: { label: string; value: string; icon: Re
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-sm font-semibold">{label}</span>
-      {children}
-    </label>
-  );
-}

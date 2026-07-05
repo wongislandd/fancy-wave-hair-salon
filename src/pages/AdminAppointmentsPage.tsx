@@ -10,7 +10,7 @@ import {
   dateKeyInTimeZone,
   formatAppointmentRange,
   formatDateKeyInTimeZone,
-  formatPrice
+  formatPriceRange
 } from "../lib/booking";
 import { listAdminAppointments } from "../lib/data";
 import { useLanguage } from "../lib/use-language";
@@ -142,7 +142,11 @@ export function AdminAppointmentsPage() {
                       </div>
                       <div className="flex items-center justify-between gap-3 lg:justify-end">
                         <span className="text-sm font-semibold text-wave-ink/60">
-                          {formatPrice(appointment.servicePriceCentsSnapshot, locale)}
+                          {formatPriceRange({
+                            priceCents: appointment.servicePriceCentsSnapshot,
+                            priceMaxCents: appointment.servicePriceMaxCentsSnapshot,
+                            priceIsStartingAt: appointment.servicePriceIsStartingAtSnapshot
+                          }, locale)}
                         </span>
                         <ArrowUpRight size={18} className="text-wave-deep" />
                       </div>

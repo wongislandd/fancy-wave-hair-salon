@@ -8,7 +8,7 @@ import {
   DEFAULT_SALON_TIME_ZONE,
   formatDateInTimeZone,
   formatDateKeyInTimeZone,
-  formatPrice,
+  formatPriceRange,
   formatTimeInTimeZone
 } from "../lib/booking";
 import { staffAppointmentFormSchema, type StaffAppointmentFormValues } from "../lib/admin";
@@ -160,7 +160,7 @@ export function AdminAddAppointmentDialog({ onClose }: { onClose: () => void }) 
                         selected={service.id === serviceId}
                         onClick={() => selectService(service)}
                         title={serviceText.name}
-                        meta={`${service.durationMinutes} ${t("common.min")} / ${formatPrice(service.priceCents, locale)}`}
+                        meta={`${service.durationMinutes} ${t("common.min")} / ${formatPriceRange(service, locale)}`}
                       />
                     );
                   })}

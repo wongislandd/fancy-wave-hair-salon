@@ -65,6 +65,11 @@ export async function getBookingByToken(
     serviceNameZh: row.service_name_zh ? String(row.service_name_zh) : null,
     serviceDurationMinutes: Number(row.service_duration_minutes),
     servicePriceCents: Number(row.service_price_cents),
+    servicePriceMaxCents:
+      row.service_price_max_cents === null || row.service_price_max_cents === undefined
+        ? null
+        : Number(row.service_price_max_cents),
+    servicePriceIsStartingAt: Boolean(row.service_price_is_starting_at),
     customerName: String(row.customer_name),
     customerEmail: String(row.customer_email),
     customerPhone: String(row.customer_phone),
